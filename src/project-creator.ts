@@ -1,8 +1,132 @@
-import * as vscode from "vscode"
-import * as path from "path"
-import * as fs from "fs"
+import { promisify } from 'node:util';
+import { basename, join } from 'node:path';
+import { readdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { commands, window, workspace } from 'vscode';
+import { default as ncpSync } from 'ncp';
 
-var ncp = require("ncp").ncp;
+import extension from './extension.js';
+
+
+const ncp = promisify(ncpSync);
+
+export async function getTemplates(): Promise<Template[]> {
+	const data = await readFile(join(extension.path, 'templates', 'info.json'));
+	var templates: any[] = JSON.parse(data.toString());
+	var result: Template[] = [];
+
+	templates.forEach((template: any) => {
+		result.push({
+			label: template.name,
+			description: "",
+			detail: template.detail,
+			id: template.path,
+			json: template.dub
+		});
+	});
+
+	return result;
+}
+
+export async function showProjectCreator(): Promise<void> {
+	const template = await window.showQuickPick(await getTemplates(), {
+		ignoreFocusOut: true,
+		matchOnDescription: true,
+		matchOnDetail: true
+	});
+
+	if (!template) {
+		return undefined;
+	}
+
+	if (workspace.workspaceFolders == null || workspace.workspaceFolders.length == 0) {
+		const result = await window.showInformationMessage("Select an empty folder to create the project in", "Select Folder");
+
+		if (result == "Select Folder") {
+			await extension.globals.setCreateTemplate(template.id);
+			await openFolderWithExtension();
+		}
+
+		return;
+	}
+
+	const path = workspace.workspaceFolders[0].uri.fsPath;
+	const files = await readdir(path);
+
+	if (files.length == 0) {
+		return performTemplateCopy(template.id, template.json, path, () => {
+			commands.executeCommand("workbench.action.reloadWindow");
+		});
+	} else {
+		const r = await window.showWarningMessage("The current workspace is not empty!", "Select other Folder", "Merge into Folder");
+		if (r == "Select other Folder") {
+			await extension.globals.setCreateTemplate(template.id);
+			await openFolderWithExtension();
+		} else if (r == "Merge into Folder") {
+			return performTemplateCopy(template.id, template.json, path, () => {
+				commands.executeCommand("workbench.action.reloadWindow");
+			});
+		}
+	}
+}
+
+export async function openFolderWithExtension() {
+	try {
+		const pkgPath = join(extension.path, 'package.json');
+		const content = (await readFile(pkgPath)).toString();
+
+		await writeFile(`${pkgPath}.bak`, content);
+		await extension.globals.setRestorePackageBackup(true);
+
+		const json = JSON.parse(content);
+		json.activationEvents = ['*'];
+		await writeFile(pkgPath, JSON.stringify(json));
+
+		commands.executeCommand('vscode.openFolder');
+	} catch (err) {
+		return window.showErrorMessage("Failed to reload. Reload manually and run some dlang command!");
+	}
+}
+
+export async function restoreCreateProjectPackageBackup(): Promise<boolean | undefined> {
+	if (extension.globals.restorePackageBackup) {
+		await extension.globals.setRestorePackageBackup(false);
+
+		try {
+			const pkgPath = join(extension.path, 'package.json');
+			const content = (await readFile(`${pkgPath}.bak`)).toString();
+			await writeFile(pkgPath, content);
+			await unlink(`${pkgPath}.bak`);
+			return true;
+		} catch (err) {
+			await window.showErrorMessage("Failed to restore after reload! Please reinstall dlang if problems occur before reporting!");
+			return false;
+		}
+	}
+}
+
+export async function performTemplateCopy<R>(templateName: string, dubJson: any, resultPath: string, callback: () => R | Thenable<R>): Promise<R | void> {
+	dubJson['name'] = createDubName(basename(resultPath));
+
+	try {
+		const templatePath = join(extension.path, 'templates', templateName);
+		await ncp(templatePath, resultPath, { clobber: false });
+	} catch (err) {
+		console.error(err);
+		await window.showErrorMessage('Failed to copy template');
+		return;
+	}
+
+	try {
+		const filename = join(resultPath, 'dub.json');
+		await writeFile(filename, JSON.stringify(dubJson, null, '\t'));
+	} catch (err) {
+		console.log(err);
+		await window.showErrorMessage('Failed to generate dub.json');
+		return;
+	}
+
+	return callback();
+}
 
 export interface Template {
 	label: string;
@@ -12,142 +136,19 @@ export interface Template {
 	json: JSON;
 }
 
-export function getTemplates(context: vscode.ExtensionContext): Thenable<Template[]> {
-	return new Promise((resolve) => {
-		fs.readFile(path.join(context.extensionPath, "templates", "info.json"), function (err, data) {
-			if (err) {
-				console.log(err);
-				return vscode.window.showErrorMessage("Failed to read template list");
-			}
-			var templates = JSON.parse(data.toString());
-			var result: Template[] = [];
-			templates.forEach((template: any) => {
-				result.push({
-					label: template.name,
-					description: "",
-					detail: template.detail,
-					id: template.path,
-					json: template.dub
-				});
-			});
-			return resolve(result);
-		});
-	});
-}
-
-export function showProjectCreator(context: vscode.ExtensionContext) {
-	vscode.window.showQuickPick(getTemplates(context), {
-		ignoreFocusOut: true,
-		matchOnDescription: true,
-		matchOnDetail: true
-	}).then((template) => {
-		if (!template)
-			return undefined;
-		var folders = vscode.workspace.workspaceFolders;
-		if (folders == undefined || folders.length == 0)
-			return vscode.window.showInformationMessage("Select an empty folder to create the project in", "Select Folder").then(r => {
-				if (r == "Select Folder") {
-					context.globalState.update("create-template", template.id);
-					openFolderWithExtension(context);
-				}
-			});
-		var path = folders[0].uri.fsPath;
-		return fs.readdir(path, function (err, files) {
-			if (files.length == 0)
-				return performTemplateCopy(context, template.id, template.json, path, function () {
-					vscode.commands.executeCommand("workbench.action.reloadWindow");
-				});
-			else
-				return vscode.window.showWarningMessage("The current workspace is not empty!", "Select other Folder", "Merge into Folder").then(r => {
-					if (r == "Select other Folder") {
-						context.globalState.update("create-template", template.id);
-						openFolderWithExtension(context);
-					} else if (r == "Merge into Folder") {
-						performTemplateCopy(context, template.id, template.json, path, function () {
-							vscode.commands.executeCommand("workbench.action.reloadWindow");
-						});
-					}
-				});
-		});
-	});
-}
-
-export function openFolderWithExtension(context: vscode.ExtensionContext) {
-	var pkgPath = path.join(context.extensionPath, "package.json");
-	fs.readFile(pkgPath, function (err, data) {
-		if (err)
-			return vscode.window.showErrorMessage("Failed to reload. Reload manually and run some code-d command!");
-		return fs.writeFile(pkgPath + ".bak", data, function (err) {
-			if (err)
-				return vscode.window.showErrorMessage("Failed to reload. Reload manually and run some code-d command!");
-			var json = JSON.parse(data.toString());
-			json.activationEvents = ["*"];
-			return fs.writeFile(pkgPath, JSON.stringify(json), function (err) {
-				if (err)
-					return vscode.window.showErrorMessage("Failed to reload. Reload manually and run some code-d command!");
-				context.globalState.update("restorePackageBackup", true);
-				vscode.commands.executeCommand("vscode.openFolder");
-				return undefined;
-			});
-		});
-	});
-}
-
-export function restoreCreateProjectPackageBackup(context: vscode.ExtensionContext): Promise<boolean | undefined> {
-	return new Promise<boolean | undefined>((resolve) => {
-		if (context.globalState.get("restorePackageBackup", false)) {
-			context.globalState.update("restorePackageBackup", false);
-			var pkgPath = path.join(context.extensionPath, "package.json");
-			fs.readFile(pkgPath + ".bak", function (err, data) {
-				if (err) {
-					resolve(false);
-					return vscode.window.showErrorMessage("Failed to restore after reload! Please reinstall code-d if problems occur before reporting!");
-				}
-				return fs.writeFile(pkgPath, data, function (err) {
-					if (err) {
-						resolve(false);
-						return vscode.window.showErrorMessage("Failed to restore after reload! Please reinstall code-d if problems occur before reporting!");
-					}
-
-					return fs.unlink(pkgPath + ".bak", function (err: any) {
-						resolve(!err);
-						console.error(err.toString());
-					});
-				});
-			});
-		} else {
-			resolve(undefined);
-		}
-	});
-}
-
 function createDubName(folderName: string) {
-	var res = folderName[0].toLowerCase();
-	for (var i = 1; i < folderName.length; i++) {
-		if (folderName[i] == folderName[i].toUpperCase() && // Is upper case
-			folderName[i] != folderName[i].toLowerCase()) {
-			res += "-";
-			res += folderName[i].toLowerCase();
-		}
-		else res += folderName[i];
-	}
-	return res.replace(/[^a-z0-9_]+/g, "-").replace(/^-|-$/g, "");
-}
+	let res = folderName[0].toLowerCase();
 
-export function performTemplateCopy(context: vscode.ExtensionContext, templateName: string, dubJson: any, resultPath: string, callback: Function) {
-	var baseName = path.basename(resultPath);
-	dubJson["name"] = createDubName(baseName);
-	ncp(path.join(context.extensionPath, "templates", templateName), resultPath, { clobber: false }, function (err: any) {
-		if (err) {
-			console.log(err);
-			return vscode.window.showErrorMessage("Failed to copy template");
+	for (const c of folderName.substring(1)) {
+		if (c === c.toUpperCase() && c !== c.toLowerCase()) {
+			res += '-';
+			res += c.toLowerCase();
+		} else {
+			res += c;
 		}
-		return fs.writeFile(path.join(resultPath, "dub.json"), JSON.stringify(dubJson, null, '\t'), function (err) {
-			if (err) {
-				console.log(err);
-				return vscode.window.showErrorMessage("Failed to generate dub.json");
-			}
-			return callback();
-		});
-	});
+	}
+
+	return res
+		.replace(/[^a-z0-9_]+/g, '-')
+		.replace(/^-|-$/g, '');
 }

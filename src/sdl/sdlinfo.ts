@@ -1,25 +1,28 @@
-import * as vscode from "vscode"
-import { parseSDL, Tag, Value } from "./sdlparse"
+import { Position, Range, TextDocument, Uri } from 'vscode';
+
+import { parseSDL, Tag, Value } from './sdlparse.js';
+
 
 export type SDLLocationType = "block" | "value" | "attribute";
 export interface SDLCompletionInfo {
-	uri: vscode.Uri,
+	uri: Uri,
 	currentSDLObject: Tag;
 	type: SDLLocationType;
 	namespace: string[];
 	name: string[];
 	value: string;
-	valueRange: vscode.Range | undefined;
+	valueRange: Range | undefined;
 	partial: string;
 	valueIndex: number;
 }
 
-export function getLocationInfo(document: vscode.TextDocument, position: vscode.Position): SDLCompletionInfo {
+export function getLocationInfo(document: TextDocument, position: Position): SDLCompletionInfo {
 	var root = parseSDL(document.getText());
 	var pos = document.offsetAt(position);
 	var current: Tag[] = [root];
 	var currentNamespace = [""];
 	var currentName = [""];
+
 	(function findContext() {
 		var prevCur = current.length;
 		Object.keys(current[current.length - 1].tags).forEach(key => {
@@ -113,11 +116,10 @@ export function getLocationInfo(document: vscode.TextDocument, position: vscode.
 		}
 	}
 
-	let range: vscode.Range | undefined;
-	if (valueContent)
-	{
+	let range: Range | undefined;
+	if (valueContent) {
 		let intRange = (<Value>valueContent).range;
-		range = new vscode.Range(
+		range = new Range(
 			document.positionAt(intRange[0]),
 			document.positionAt(intRange[1]),
 		);

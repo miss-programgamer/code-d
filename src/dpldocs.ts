@@ -1,26 +1,32 @@
-import * as vscode from "vscode";
-import * as path from "path";
-import { JSDOM } from "jsdom";
-import { openTextDocumentAtRange, reqText } from "./util";
-import { served } from "./extension";
-import { DubDependencyInfo } from "./dub-view";
-import { DOMParser, Element } from "@xmldom/xmldom";
+import path from 'node:path';
+import { ProgressLocation, QuickPick, QuickPickItem, Uri, ViewColumn, WebviewPanel, window, workspace } from 'vscode';
+import { JSDOM } from 'jsdom';
+import { DOMParser, Element } from '@xmldom/xmldom';
 
-export type DocItem = vscode.QuickPickItem & { href: string, score: number, dependency?: DubDependencyInfo };
+import extension from './extension.js';
+import { DubDependencyInfo } from './dub/view.js';
+import { openTextDocument, reqText } from './utils/index.js';
+
+
+export type DocItem = QuickPickItem & {
+	href: string;
+	score: number;
+	dependency?: DubDependencyInfo;
+};
 
 class WorkState {
 	working: number = 0;
 	items: DocItem[] = [];
-	depItems: { [index: string]: DocItem[] } = {};
+	depItems: { [index: string]: DocItem[]; } = {};
 	visible: boolean = false;
 	done: boolean = false;
 
 	private resolve?: Function;
 
-	constructor(public quickPick: vscode.QuickPick<any>, public query: string | undefined, public fastOpen: boolean) {
-		if (fastOpen)
-			vscode.window.withProgress({
-				location: vscode.ProgressLocation.Notification,
+	constructor(public quickPick: QuickPick<any>, public query: string | undefined, public fastOpen: boolean) {
+		if (fastOpen) {
+			window.withProgress({
+				location: ProgressLocation.Notification,
 				cancellable: true
 			}, (progress, token) => {
 				progress.report({ message: "Looking up documentation" });
@@ -34,6 +40,7 @@ class WorkState {
 			}).then((result) => {
 				// done
 			});
+		}
 	}
 
 	startWork() {
@@ -139,7 +146,7 @@ class WorkState {
 }
 
 export function showDpldocsSearch(query?: string, fastOpen: boolean = false) {
-	var quickpick = vscode.window.createQuickPick<DocItem>();
+	var quickpick = window.createQuickPick<DocItem>();
 	const state = new WorkState(quickpick, query, fastOpen);
 
 	loadDependencyPackageDocumentations(state);
@@ -164,14 +171,13 @@ export function showDpldocsSearch(query?: string, fastOpen: boolean = false) {
 	}
 }
 
-export async function fillDplDocs(panel: vscode.WebviewPanel, label: string, href: string) {
+export async function fillDplDocs(panel: WebviewPanel, label: string, href: string) {
 	panel.webview.html = "<h1>" + label + "</h1>";
 
 	if (href.startsWith("//"))
 		href = "https:" + href;
 
-	if (!href.startsWith("http:") && !href.startsWith("https:"))
-	{
+	if (!href.startsWith("http:") && !href.startsWith("https:")) {
 		panel.webview.html = `<h1>${label}</h1><p>Non-docs URL: <a href="${href}">${href}</a></p>`;
 
 		return;
@@ -183,7 +189,7 @@ export async function fillDplDocs(panel: vscode.WebviewPanel, label: string, hre
 	let page = content.window.document.getElementById("page-body");
 	if (page) {
 		let nonce = Math.random().toString(36).substr(2) + Math.random().toString(36).substr(2) + Math.random().toString(36).substr(2);
-		let font = vscode.workspace.getConfiguration("editor").get("fontFamily") || "monospace";
+		let font = workspace.getConfiguration("editor").get("fontFamily") || "monospace";
 		panel.webview.html = `<!DOCTYPE html>
 			<html lang="en">
 			<head>
@@ -408,10 +414,11 @@ export async function fillDplDocs(panel: vscode.WebviewPanel, label: string, hre
 }
 
 async function loadDependencyPackageDocumentations(state: WorkState) {
-	if (!served)
+	if (extension.served == null) {
 		return;
+	}
 
-	let deps = await served.getChildren();
+	let deps: any[] = await extension.served.getChildren();
 	var checked: string[] = [];
 	deps.forEach(dep => {
 		if (dep.info) {
@@ -460,7 +467,7 @@ export function loadDependencySymbolsOnline(
 				}
 			} else throw body;
 		});
-	}
+	};
 	return doTry(url);
 }
 
@@ -593,8 +600,8 @@ function getCleanSimpleTextContent(elem: Element | null): string | null {
 }
 
 function showDocItemUI(docItem: DocItem) {
-	var panel = vscode.window.createWebviewPanel("dpldocs", docItem.label, {
-		viewColumn: vscode.ViewColumn.Active
+	var panel = window.createWebviewPanel("dpldocs", docItem.label, {
+		viewColumn: ViewColumn.Active
 	}, {
 		enableCommandUris: false,
 		enableFindWidget: true,
@@ -602,16 +609,17 @@ function showDocItemUI(docItem: DocItem) {
 		localResourceRoots: []
 	});
 	var baseUri = docItem.href;
+
 	panel.webview.onDidReceiveMessage((msg) => {
 		switch (msg.type) {
 			case "handle-link":
 				if (/^coded-internal:\/\/[^/?#]+\.dpldocs\.info(\/|$)/.test(msg.href)) {
 					// absolute dpldocs link, possibly with different subdomain
-					baseUri = vscode.Uri.parse(msg.href).with({"scheme":"https"}).toString();
+					baseUri = Uri.parse(msg.href).with({ "scheme": "https" }).toString();
 					fillDplDocs(panel, msg.title, baseUri);
 				} else {
 					let href = path.posix.normalize(msg.href);
-					let uri = vscode.Uri.parse(baseUri);
+					let uri = Uri.parse(baseUri);
 					if (href.startsWith("/")) {
 						baseUri = uri.with({
 							path: href
@@ -627,6 +635,7 @@ function showDocItemUI(docItem: DocItem) {
 					fillDplDocs(panel, msg.title, baseUri);
 				}
 				break;
+
 			case "open-module":
 				let module_ = <string>msg.module_;
 				let line = msg.line;
@@ -634,15 +643,16 @@ function showDocItemUI(docItem: DocItem) {
 				break;
 		}
 	});
+
 	fillDplDocs(panel, docItem.label, docItem.href);
 }
 
 function focusModule(module_: string, line: number) {
-	served.findFilesByModule(module_).then(files => {
+	extension.served?.findFilesByModule(module_).then(files => {
 		if (!files.length) {
-			vscode.window.showErrorMessage("Could not find module " + module_);
+			window.showErrorMessage("Could not find module " + module_);
 		} else {
-			openTextDocumentAtRange(vscode.Uri.parse(files[0]), line > 0 ? line - 1 : null);
+			openTextDocument(Uri.parse(files[0]), line > 0 ? line - 1 : null);
 		}
 	});
 }

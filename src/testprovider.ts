@@ -1,11 +1,12 @@
-import * as vscode from "vscode";
-import * as path from "path";
-import { ServeD, served } from "./extension";
-import { TestLoadStartedEvent, TestLoadFinishedEvent, TestRunStartedEvent, TestRunFinishedEvent, TestSuiteEvent, TestEvent, TestAdapter, TestHub, TestSuiteInfo } from "vscode-test-adapter-api";
-import { DocumentUri, Range } from "vscode-languageclient/node";
+import { basename } from 'node:path';
+import { Disposable, Event, EventEmitter, Uri, workspace, WorkspaceFolder } from 'vscode';
+import { TestLoadStartedEvent, TestLoadFinishedEvent, TestRunStartedEvent, TestRunFinishedEvent, TestSuiteEvent, TestEvent, TestAdapter, TestHub, TestSuiteInfo } from 'vscode-test-adapter-api';
+import { DocumentUri, Range } from 'vscode-languageclient';
 
-export interface UnittestProject
-{
+import type ServeD from './ServeD.js';
+
+
+export interface UnittestProject {
 	/// Workspace uri which may or may not map to an actual workspace folder
 	/// but rather to some folder inside one.
 	workspaceUri: DocumentUri;
@@ -14,23 +15,21 @@ export interface UnittestProject
 	needsLoad: boolean;
 }
 
-export interface UnittestModule
-{
+export interface UnittestModule {
 	moduleName: string;
 	uri: DocumentUri;
 	tests: UnittestInfo[];
 }
 
-export interface UnittestInfo
-{
+export interface UnittestInfo {
 	id: string;
 	name: string;
 	containerName: string;
 	range: Range;
 }
 
-export class TestAdapterGenerator implements vscode.Disposable {
-	private adapters: { [index: string]: ServeDTestProvider } = {};
+export class TestAdapterGenerator implements Disposable {
+	private adapters: Record<string, ServeDTestProvider> = {};
 
 	constructor(
 		public served: ServeD,
@@ -39,19 +38,23 @@ export class TestAdapterGenerator implements vscode.Disposable {
 	}
 
 	updateTests(tests: UnittestProject) {
-		if (tests.needsLoad)
-			return; // no lazy load in TestAdapter API
+		// no lazy load in TestAdapter API
+		if (tests.needsLoad) {
+			return;
+		}
 
 		let adapter = this.adapters[tests.workspaceUri];
+
 		if (!adapter) {
-			const uri = vscode.Uri.parse(tests.workspaceUri);
-			adapter = this.adapters[tests.workspaceUri] = new ServeDTestProvider(
+			const uri = Uri.parse(tests.workspaceUri);
+			adapter = new ServeDTestProvider(
 				this.served,
 				tests.workspaceUri,
-				tests.name || path.basename(uri.fsPath),
-				vscode.workspace.getWorkspaceFolder(uri),
+				tests.name || basename(uri.fsPath),
+				workspace.getWorkspaceFolder(uri),
 				tests.needsLoad
 			);
+			this.adapters[tests.workspaceUri] = adapter;
 			this.testHub.registerTestAdapter(adapter);
 		}
 
@@ -59,20 +62,20 @@ export class TestAdapterGenerator implements vscode.Disposable {
 	}
 
 	dispose() {
-		vscode.Disposable.from(...Object.values(this.adapters)).dispose();
+		Disposable.from(...Object.values(this.adapters)).dispose();
 	}
 }
 
-export class ServeDTestProvider implements TestAdapter, vscode.Disposable {
-	private disposables: { dispose(): void }[] = [];
+export class ServeDTestProvider implements TestAdapter, Disposable {
+	private disposables: { dispose(): void; }[] = [];
 
-	private readonly testsEmitter = new vscode.EventEmitter<TestLoadStartedEvent | TestLoadFinishedEvent>();
-	private readonly testStatesEmitter = new vscode.EventEmitter<TestRunStartedEvent | TestRunFinishedEvent | TestSuiteEvent | TestEvent>();
-	private readonly autorunEmitter = new vscode.EventEmitter<void>();
+	private readonly testsEmitter = new EventEmitter<TestLoadStartedEvent | TestLoadFinishedEvent>();
+	private readonly testStatesEmitter = new EventEmitter<TestRunStartedEvent | TestRunFinishedEvent | TestSuiteEvent | TestEvent>();
+	private readonly autorunEmitter = new EventEmitter<void>();
 
-	get tests(): vscode.Event<TestLoadStartedEvent | TestLoadFinishedEvent> { return this.testsEmitter.event; }
-	get testStates(): vscode.Event<TestRunStartedEvent | TestRunFinishedEvent | TestSuiteEvent | TestEvent> { return this.testStatesEmitter.event; }
-	get autorun(): vscode.Event<void> | undefined { return this.autorunEmitter.event; }
+	get tests(): Event<TestLoadStartedEvent | TestLoadFinishedEvent> { return this.testsEmitter.event; }
+	get testStates(): Event<TestRunStartedEvent | TestRunFinishedEvent | TestSuiteEvent | TestEvent> { return this.testStatesEmitter.event; }
+	get autorun(): Event<void> | undefined { return this.autorunEmitter.event; }
 
 	private modules: UnittestModule[] = [];
 	private firstLoad: boolean;
@@ -81,7 +84,7 @@ export class ServeDTestProvider implements TestAdapter, vscode.Disposable {
 		public served: ServeD,
 		public folderId: string,
 		public folderName: string,
-		public workspace?: vscode.WorkspaceFolder,
+		public workspace?: WorkspaceFolder,
 		public needsLoad?: boolean
 	) {
 		this.firstLoad = true;
@@ -90,31 +93,33 @@ export class ServeDTestProvider implements TestAdapter, vscode.Disposable {
 	updateModules(needsLoad: boolean, modules: UnittestModule[]) {
 		this.needsLoad = needsLoad;
 		this.modules = modules;
-		let suite: TestSuiteInfo = {
-			id: "project_" + this.folderId,
+
+		const suite: TestSuiteInfo = {
+			id: `project_${this.folderId}`,
 			label: this.folderName,
-			type: "suite",
+			type: 'suite',
 			debuggable: true,
 			children: []
 		};
 
 		modules.forEach(module => {
-			const file = vscode.Uri.parse(module.uri).fsPath;
-			let moduleInfo: TestSuiteInfo = {
-				type: "suite",
+			const file = Uri.parse(module.uri).fsPath;
+
+			const moduleInfo: TestSuiteInfo = {
+				type: 'suite',
 				debuggable: true,
-				id: "module_" + module.uri,
-				label: module.moduleName.startsWith("(file)")
-					? "File " + module.moduleName.substring(6).trim()
-					: "Module " + module.moduleName,
+				id: `module_${module.uri}`,
+				label: module.moduleName.startsWith('(file)')
+					? 'File ' + module.moduleName.substring(6).trim()
+					: 'Module ' + module.moduleName,
 				children: [],
-				file: file
+				file: file,
 			};
 
 			module.tests.forEach(test => {
 				moduleInfo.children.push({
-					type: "test",
-					id: "test_" + test.id,
+					type: 'test',
+					id: `test_${test.id}`,
 					label: test.name,
 					description: test.containerName
 						? `in ${test.containerName}`
@@ -128,39 +133,36 @@ export class ServeDTestProvider implements TestAdapter, vscode.Disposable {
 			suite.children.push(moduleInfo);
 		});
 
-		this.testsEmitter.fire({
-			type: "finished",
-			suite: suite
-		});
+		this.testsEmitter.fire({ type: 'finished', suite });
 	}
 
 	async load(): Promise<void> {
+		// skip first load (already emitting loaded), only do reloads
 		if (this.firstLoad) {
 			this.firstLoad = false;
-			// skip first load (already emitting loaded)
-			// only do reloads
 			return;
 		}
 
-		this.served.client.sendRequest("served/rescanTests", { uri: this.folderId });
+		await this.served.client.sendRequest('served/rescanTests', { uri: this.folderId });
 	}
 
 	async run(tests: string[]): Promise<void> {
+		// TODO: implement this
 	}
 
 	async debug(tests: string[]): Promise<void> {
+		// TODO: implement this
 	}
 
 	cancel(): void {
-		// in a "real" TestAdapter this would kill the child process for the current test run (if there is any)
-		throw new Error("Method not implemented.");
+		// in a "real" TestAdapter this would kill the child process for the
+		// current test run (if there is any)
+		throw new Error('Method not implemented.');
 	}
 
 	dispose() {
 		this.cancel();
-		for (const disposable of this.disposables) {
-			disposable.dispose();
-		}
+		this.disposables.forEach(d => d.dispose());
 		this.disposables = [];
 	}
 }

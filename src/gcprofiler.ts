@@ -1,30 +1,27 @@
-import * as vscode from "vscode";
-import { served } from "./extension";
-import { openTextDocumentAtRange } from "./util";
+import { window, Uri } from 'vscode';
 
-interface ProfileQuickPick extends vscode.QuickPickItem {
-	uri: string;
-	line: number;
-}
+import extension from './extension.js';
+import { openTextDocument } from './utils/index.js';
 
-export class GCProfiler {
-	static listProfileCache() {
-		let entriesPromise = served.client.sendRequest<any[]>("served/getProfileGCEntries");
 
-		let items: Thenable<ProfileQuickPick[]> = entriesPromise.then(gcEntries =>
-			gcEntries.map(entry => <ProfileQuickPick>{
-				description: entry.type,
-				detail: entry.bytesAllocated + " bytes allocated / " + entry.allocationCount + " allocations",
-				label: entry.displayFile + ":" + entry.line,
-				uri: entry.uri,
-				line: entry.line
-			}));
-
-		vscode.window.showQuickPick(items).then(item => {
-			if (item)
-				openTextDocumentAtRange(vscode.Uri.parse(item.uri), item.line - 1);
-		});
-	}
-
+export default class GCProfiler {
 	profiles: any[] = [];
+
+	static async listProfileCache() {
+		const entries = await extension.served?.client.sendRequest<any[]>("served/getProfileGCEntries") ?? [];
+
+		const items = entries.map(entry => ({
+			description: entry.type,
+			detail: `${entry.bytesAllocated} bytes allocated / ${entry.allocationCount} allocations`,
+			label: `${entry.displayFile}:${entry.line}`,
+			uri: entry.uri,
+			line: entry.line
+		}));
+
+		const item = await window.showQuickPick(items);
+
+		if (item != null) {
+			openTextDocument(Uri.parse(item.uri), item.line - 1);
+		}
+	}
 }

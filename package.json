@@ -49,7 +49,7 @@
 		"onCommand:code-d.viewUserGuide",
 		"onCustomEditor:code-d.dubRecipe"
 	],
-	"main": "./out/extension",
+	"main": "./out/extension.js",
 	"keywords": [
 		"d",
 		"dlang",
@@ -1539,9 +1539,12 @@
 		"which": "^4.0.0"
 	},
 	"devDependencies": {
+		"@types/adm-zip": "^0.5.7",
+		"@types/async": "^3.2.24",
 		"@types/expand-tilde": "^2.0.2",
 		"@types/jsdom": "^21.1.7",
 		"@types/mocha": "^10.0.8",
+		"@types/ncp": "^2.0.8",
 		"@types/node": "^22.5.5",
 		"@types/parse5": "^7.0.0",
 		"@types/vscode": "^1.93.0",

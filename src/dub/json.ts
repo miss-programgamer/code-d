@@ -1,45 +1,37 @@
-import { IJSONContribution, ISuggestionsCollector } from "./json-contributions";
-import * as vscode from "vscode";
-import * as fs from "fs";
-import * as path from "path";
-import { Location } from "jsonc-parser";
-import { searchDubPackages, listPackages, getPackageInfo, getLatestPackageInfo, autoCompletePath } from "./dub-api"
-import { cmpSemver } from "./installer";
-import { served } from "./extension";
+import { CompletionItem, CompletionItemKind, DocumentSelector, MarkdownString, SnippetString } from 'vscode';
+import { Location } from 'jsonc-parser';
 
-function pad3(n: number) {
-	if (n >= 100)
-		return n.toString();
-	if (n >= 10)
-		return "0" + n.toString();
-	return "00" + n.toString();
-}
+import { listPackages, getPackageInfo, getLatestPackageInfo, autoCompletePath } from './api.js';
+import { IJSONContribution, ISuggestionsCollector } from '../json-contributions.js';
+import { cmpSemver } from '../utils/index.js';
+import extension from '../extension.js';
 
-interface PropertyCompletionItem extends vscode.CompletionItem {
+
+interface PropertyCompletionItem extends CompletionItem {
 	defaultValue?: string;
 	isDependency?: boolean;
 }
 
 export class DubJSONContribution implements IJSONContribution {
-	public getDocumentSelector(): vscode.DocumentSelector {
+	public getDocumentSelector(): DocumentSelector {
 		return [{ language: "json", pattern: "**/dub.json", scheme: "file" }];
 	}
 
-	public getInfoContribution(fileName: string, location: Location): Thenable<vscode.MarkdownString[]> {
+	public getInfoContribution(fileName: string, location: Location): Thenable<MarkdownString[]> {
 		if (location.path.length < 2 || location.path[location.path.length - 2] != "dependencies")
 			return Promise.resolve([]);
 		let pack = location.path[location.path.length - 1];
 		if (typeof pack === "string") {
 			return getLatestPackageInfo(pack).then(info => {
-				let htmlContent: vscode.MarkdownString[] = [];
-				htmlContent.push(new vscode.MarkdownString("Package " + pack));
+				let htmlContent: MarkdownString[] = [];
+				htmlContent.push(new MarkdownString("Package " + pack));
 				if (info.description) {
-					let block = new vscode.MarkdownString(info.description);
+					let block = new MarkdownString(info.description);
 					block.isTrusted = false;
 					htmlContent.push(block);
 				}
 				if (info.license || info.copyright) {
-					let block = new vscode.MarkdownString();
+					let block = new MarkdownString();
 					if (info.license)
 						block.appendText("License: " + info.license + "\n");
 					if (info.copyright)
@@ -48,7 +40,7 @@ export class DubJSONContribution implements IJSONContribution {
 					htmlContent.push(block);
 				}
 				if (info.version) {
-					htmlContent.push(new vscode.MarkdownString("Latest version: " + info.version));
+					htmlContent.push(new MarkdownString("Latest version: " + info.version));
 				}
 				return htmlContent;
 			});
@@ -57,7 +49,7 @@ export class DubJSONContribution implements IJSONContribution {
 	}
 
 	public async collectPropertySuggestions(fileName: string, location: Location, currentWord: string, addValue: boolean, isLast: boolean, result: ISuggestionsCollector): Promise<void> {
-		let items : PropertyCompletionItem[] | undefined;
+		let items: PropertyCompletionItem[] | undefined;
 
 		if (location.isAtPropertyKey) {
 			currentWord = location.previousNode?.value || currentWord;
@@ -78,7 +70,7 @@ export class DubJSONContribution implements IJSONContribution {
 			return;
 
 		items.forEach(item => {
-			let insertText = new vscode.SnippetString().appendText(JSON.stringify(item.label));
+			let insertText = new SnippetString().appendText(JSON.stringify(item.label));
 			if (addValue) {
 				insertText.appendText(': "').appendPlaceholder(item.defaultValue || "").appendText('"');
 				if (!isLast)
@@ -91,43 +83,41 @@ export class DubJSONContribution implements IJSONContribution {
 	}
 
 	protected async collectSubConfigurationsPropertySuggestions(): Promise<PropertyCompletionItem[]> {
-		const deps = await served.getDependencies();
+		const deps = await extension.served?.getDependencies() ?? [];
 		return deps
 			.filter(d => d.info !== undefined)
 			.map(d => {
-				let item = new vscode.CompletionItem(d.info!.name);
+				let item = new CompletionItem(d.info!.name);
 				item.filterText = item.insertText = JSON.stringify(d.info!.name); // add quotes
-				item.kind = vscode.CompletionItemKind.Property;
+				item.kind = CompletionItemKind.Property;
 				return item;
 			});
 	}
 
 	protected async collectDependencyPropertySuggestions(currentWord: string): Promise<PropertyCompletionItem[]> {
 		let colonIdx = currentWord.indexOf(":");
-		let ret: vscode.CompletionItem[] = [];
+		let ret: CompletionItem[] = [];
 		if (colonIdx != -1) {
 			const pkgName = currentWord.substring(0, colonIdx);
 			const info = await getLatestPackageInfo(pkgName);
-			try
-			{
+			try {
 				info.subPackages?.forEach(subPkgName => {
 					let completionName = pkgName + ":" + subPkgName;
-					let item = <PropertyCompletionItem>new vscode.CompletionItem(completionName, vscode.CompletionItemKind.Property);
+					let item = <PropertyCompletionItem>new CompletionItem(completionName, CompletionItemKind.Property);
 					item.documentation = info.description;
 					item.defaultValue = info.version;
 					item.isDependency = true;
 					ret.push(item);
 				});
 			}
-			catch (err)
-			{
+			catch (err) {
 				throw new Error("Package not found");
 			}
 		} else {
 			const json = await listPackages();
 			try {
 				json.forEach(element => {
-					let item = <PropertyCompletionItem>new vscode.CompletionItem(element, vscode.CompletionItemKind.Property);
+					let item = <PropertyCompletionItem>new CompletionItem(element, CompletionItemKind.Property);
 					item.isDependency = true;
 					ret.push(item);
 				});
@@ -147,7 +137,7 @@ export class DubJSONContribution implements IJSONContribution {
 		} else {
 			keyName = <string>location.path[location.path.length - 1];
 		}
-		if (typeof(keyName) != "string")
+		if (typeof (keyName) != "string")
 			keyName = "";
 
 		if (["path", "targetPath", "sourcePaths", "stringImportPaths", "importPaths", "copyFiles", "sourceFiles", "excludedSourceFiles", "mainSourceFile"].indexOf(keyName) != -1)
@@ -173,12 +163,12 @@ export class DubJSONContribution implements IJSONContribution {
 						result.error("No versions found");
 						return resolve(undefined);
 					}
-					var items: vscode.CompletionItem[] = [];
+					var items: CompletionItem[] = [];
 					for (var i = versions.length - 1; i >= 0; i--) {
-						var item = new vscode.CompletionItem(versions[i].version);
+						var item = new CompletionItem(versions[i].version);
 						item.detail = "Released on " + new Date(versions[i].date).toLocaleDateString();
-						item.kind = vscode.CompletionItemKind.Class;
-						item.insertText = new vscode.SnippetString(JSON.stringify("${0}" + versions[i].version));
+						item.kind = CompletionItemKind.Class;
+						item.insertText = new SnippetString(JSON.stringify("${0}" + versions[i].version));
 						item.filterText = JSON.stringify(versions[i].version);
 						item.sortText = "0";
 						items.push(item);
@@ -201,14 +191,14 @@ export class DubJSONContribution implements IJSONContribution {
 		return Promise.resolve(null);
 	}
 
-	public resolveSuggestion(item: vscode.CompletionItem): Thenable<vscode.CompletionItem> {
-		if (item.kind === vscode.CompletionItemKind.Property && (<any>item).isDependency) {
+	public resolveSuggestion(item: CompletionItem): Thenable<CompletionItem> {
+		if (item.kind === CompletionItemKind.Property && (<any>item).isDependency) {
 			let pack = item.label;
 			if (typeof pack != "string")
 				pack = pack.label;
 			return getLatestPackageInfo(pack).then(info => {
 				if (info.description) {
-					let doc = new vscode.MarkdownString();
+					let doc = new MarkdownString();
 					doc.isTrusted = false;
 					doc.appendMarkdown(info.description);
 					if (info.license || info.copyright) {
@@ -226,7 +216,7 @@ export class DubJSONContribution implements IJSONContribution {
 				}
 				if (info.version) {
 					item.detail = info.version;
-					item.insertText = new vscode.SnippetString((<vscode.SnippetString>item.insertText).value.replace(/\{\{\}\}/, "{{" + info.version + "}}"));
+					item.insertText = new SnippetString((item.insertText as SnippetString).value.replace(/\{\{\}\}/, "{{" + info.version + "}}"));
 				}
 				if (typeof item.label == "string") {
 					item.label = {
@@ -243,4 +233,12 @@ export class DubJSONContribution implements IJSONContribution {
 		}
 		return Promise.resolve(<any>undefined);
 	}
+}
+
+function pad3(n: number) {
+	if (n >= 100)
+		return n.toString();
+	if (n >= 10)
+		return "0" + n.toString();
+	return "00" + n.toString();
 }

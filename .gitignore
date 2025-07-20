@@ -1,7 +1,8 @@
-out
-node_modules
+# VS Code ignores
+.vscode
 .vscode-test/
-private/
 *.vsix
-bin
-package-lock.json
+
+# Nodejs ignores
+node_modules
+out

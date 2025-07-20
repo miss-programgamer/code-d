@@ -1,60 +1,76 @@
-import { getLocationInfo, SDLCompletionInfo } from "./sdlinfo"
-import { parseSDL, Tag, Value, TagParseError } from "./sdlparse"
-import * as path from "path"
-import * as vscode from "vscode"
-import { listPackages, getPackageInfo, getLatestPackageInfo, autoCompletePath } from "../dub-api"
-import { cmpSemver } from "../installer"
-import { served } from "../extension"
+import { basename } from 'node:path';
+import { CancellationToken, CompletionItem, CompletionItemKind, CompletionItemProvider, Diagnostic, DiagnosticSeverity, Disposable, languages, MarkdownString, Position, Range, SnippetString, TextDocument, workspace } from 'vscode';
 
-export function addSDLProviders(): vscode.Disposable {
-	let subscriptions: vscode.Disposable[] = [];
+import { getLocationInfo, SDLCompletionInfo } from './sdlinfo.js';
+import { parseSDL, Tag, Value, TagParseError } from './sdlparse.js';
+import { listPackages, getPackageInfo, getLatestPackageInfo, autoCompletePath } from '../dub/api.js';
+import { cmpSemver } from '../utils/index.js';
+
+import extension from "../extension.js";
+
+
+export function addSDLProviders(): Disposable {
+	let subscriptions: Disposable[] = [];
 	let contribution = new SDLContributions();
-	subscriptions.push(vscode.languages.registerCompletionItemProvider([{ language: "sdl", pattern: "**/dub.sdl" }], contribution, '"', '`', '=', '/', '\\'));
-	let diagnosticCollection = vscode.languages.createDiagnosticCollection("dub.sdl");
+	subscriptions.push(languages.registerCompletionItemProvider([{ language: "sdl", pattern: "**/dub.sdl" }], contribution, '"', '`', '=', '/', '\\'));
+	let diagnosticCollection = languages.createDiagnosticCollection("dub.sdl");
 	subscriptions.push(diagnosticCollection);
 	let version;
 	let writeTimeout: NodeJS.Timeout;
-	vscode.workspace.onDidChangeTextDocument(event => {
+	workspace.onDidChangeTextDocument(event => {
 		let document = event.document;
-		if (path.basename(document.fileName) != "dub.sdl")
+
+		if (basename(document.fileName) != "dub.sdl") {
 			return;
+		}
+
 		clearTimeout(writeTimeout);
 		writeTimeout = setTimeout(function () {
-			if (vscode.workspace.getConfiguration("d").get("enableSDLLinting", true)) {
+			if (workspace.getConfiguration("d").get("enableSDLLinting", true)) {
 				diagnosticCollection.clear();
 				diagnosticCollection.set(document.uri, contribution.provideDiagnostics(document));
 			}
 		}, 50);
 	}, null, subscriptions);
-	return vscode.Disposable.from(...subscriptions);
+	return Disposable.from(...subscriptions);
 }
 
 function completeDubVersion(info: SDLCompletionInfo): SDLCompletionResult {
-	if (!info.currentSDLObject.values || info.currentSDLObject.values.length != 1)
+	if (!info.currentSDLObject.values || info.currentSDLObject.values.length != 1) {
 		return [];
-	if (info.currentSDLObject.attributes.repository)
+	}
+
+	if (info.currentSDLObject.attributes.repository) {
 		return []; // no autocompletion of version when repository is set
+	}
+
 	var packageName = info.currentSDLObject.values[0].value;
 	return new Promise((resolve) => {
 		getPackageInfo(packageName).then(json => {
 			var versions = json.versions;
+
 			if (!versions || !versions.length) {
 				return resolve([]);
 			}
-			let results: vscode.CompletionItem[] = [];
+
+			let results: CompletionItem[] = [];
 			for (let i = versions.length - 1; i >= 0; i--) {
-				let item = new vscode.CompletionItem(versions[i].version);
+				let item = new CompletionItem(versions[i].version);
 				item.detail = "Released on " + new Date(versions[i].date).toLocaleDateString();
-				item.kind = vscode.CompletionItemKind.Class;
-				item.insertText = new vscode.SnippetString().appendPlaceholder("").appendText(versions[i].version);
+				item.kind = CompletionItemKind.Class;
+				item.insertText = new SnippetString().appendPlaceholder("").appendText(versions[i].version);
 				results.push(item);
 			}
+
 			results.sort((a, b) => cmpSemver(
 				typeof b.label == "string" ? b.label : b.label.label,
 				typeof a.label == "string" ? a.label : a.label.label
 			));
-			for (let i = 0; i < results.length; i++)
+
+			for (let i = 0; i < results.length; i++) {
 				results[i].sortText = (10000000 + i).toString(); // lazy 0 pad
+			}
+
 			resolve(results);
 		}, error => {
 			console.log("Error searching for versions");
@@ -64,47 +80,31 @@ function completeDubVersion(info: SDLCompletionInfo): SDLCompletionResult {
 	});
 }
 
-function completeDubPackageName(info: SDLCompletionInfo): SDLCompletionResult {
-	return new Promise((resolve) => {
-		var colonIdx = info.partial.indexOf(":");
-		if (colonIdx != -1) {
-			var pkgName = info.partial.substr(0, colonIdx);
-			getLatestPackageInfo(pkgName).then(info => {
-				var results: vscode.CompletionItem[] = [];
-				if (info.subPackages)
-					info.subPackages.forEach(subPkgName => {
-						var item = new vscode.CompletionItem(pkgName + ":" + subPkgName);
-						var insertText = subPkgName;
-						item.insertText = new vscode.SnippetString().appendText(insertText);
-						item.kind = vscode.CompletionItemKind.Property;
-						item.documentation = new vscode.MarkdownString(info.description);
-						results.push(item);
-					});
-				resolve(results);
-			}, err => {
-				console.log("Error searching for packages");
-				console.log(err);
-				resolve([]);
-			});
-		}
-		else {
-			listPackages().then(json => {
-				var results: vscode.CompletionItem[] = [];
-				json.forEach(element => {
-					var item = new vscode.CompletionItem(element);
-					item.kind = vscode.CompletionItemKind.Property;
-					var insertText = element;
-					item.insertText = new vscode.SnippetString().appendText(insertText);
-					results.push(item);
-				});
-				resolve(results);
-			}, err => {
-				console.log("Error searching for packages");
-				console.log(err);
-				resolve([]);
-			});
-		}
-	});
+async function completeDubPackageName(info: SDLCompletionInfo): Promise<CompletionItem[]> {
+	const colonIdx = info.partial.indexOf(':');
+
+	if (colonIdx !== -1) {
+		const pkgName = info.partial.substring(0, colonIdx);
+		const pkgInfo = await getLatestPackageInfo(pkgName);
+
+		return pkgInfo.subPackages?.map(subPkgName => {
+			const item = new CompletionItem(`${pkgName}:${subPkgName}`);
+			item.insertText = new SnippetString().appendText(subPkgName);
+			item.kind = CompletionItemKind.Property;
+			item.documentation = new MarkdownString(pkgInfo.description);
+			return item;
+		}) ?? [];
+	} else {
+		const json = await listPackages();
+
+		return json.map(element => {
+			const item = new CompletionItem(element);
+			item.kind = CompletionItemKind.Property;
+			const insertText = element;
+			item.insertText = new SnippetString().appendText(insertText);
+			return item;
+		});
+	}
 }
 
 const platforms = [
@@ -129,7 +129,9 @@ const platforms = [
 	"mingw",
 	"wasm",
 ];
-const platformComplete = platforms.map(a => new vscode.CompletionItem(a, vscode.CompletionItemKind.Property));
+const platformComplete = platforms.map(platform => {
+	return new CompletionItem(platform, CompletionItemKind.Property);
+});
 
 const architectures = [
 	"x86",
@@ -170,16 +172,20 @@ const architectures = [
 	"alpha_softfp",
 	"alpha_hardfp"
 ];
-const architectureComplete = architectures.map(a => new vscode.CompletionItem(a, vscode.CompletionItemKind.EnumMember));
+const architectureComplete = architectures.map(arch => {
+	return new CompletionItem(arch, CompletionItemKind.EnumMember);
+});
 
 const compilers = ["dmd", "gdc", "ldc", "sdc"];
-const compilerComplete = compilers.map(a => new vscode.CompletionItem(a, vscode.CompletionItemKind.Method));
+const compilerComplete = compilers.map(compiler => {
+	return new CompletionItem(compiler, CompletionItemKind.Method);
+});
 
 const pathComplete: CompletionValues = {
 	type: "string",
 	pattern: {
 		complete: async (info: SDLCompletionInfo) => {
-			let res: vscode.CompletionItem[] = [];
+			let res: CompletionItem[] = [];
 			await autoCompletePath(
 				info.uri.fsPath,
 				info.name[info.name.length - 1] || info.name[info.name.length - 2],
@@ -191,7 +197,7 @@ const pathComplete: CompletionValues = {
 			return res;
 		}
 	}
-}
+};
 
 function platformPatternCompleter(info: SDLCompletionInfo): SDLCompletionResult {
 	// os-architecture-compiler
@@ -212,7 +218,7 @@ function platformPatternCompleter(info: SDLCompletionInfo): SDLCompletionResult 
 			parts.splice(1, 0, "");
 	}
 
-	let result: vscode.CompletionItem[] = [];
+	let result: CompletionItem[] = [];
 	if (parts.length == 0 || parts.length == 1) {
 		result.push.apply(result, platformComplete);
 		result.push.apply(result, architectureComplete);
@@ -302,11 +308,11 @@ interface CompletionPattern {
 	exec?: SDLValidateExecCallback;
 }
 
-type CompletionTagMap = { [index: string]: CompletionTag };
-type OptionalCompletionTagMap = { [index: string]: CompletionTag | undefined };
-type CompletionAttributeMap = { [index: string]: CompletionAttribute };
+type CompletionTagMap = { [index: string]: CompletionTag; };
+type OptionalCompletionTagMap = { [index: string]: CompletionTag | undefined; };
+type CompletionAttributeMap = { [index: string]: CompletionAttribute; };
 
-type SDLCompletionResult = Thenable<(vscode.CompletionItem | string)[]> | (vscode.CompletionItem | string)[];
+type SDLCompletionResult = Thenable<(CompletionItem | string)[]> | (CompletionItem | string)[];
 type SDLCompletionCallback = (info: SDLCompletionInfo) => SDLCompletionResult;
 type SDLValidationCallback = (value: Value) => string | undefined;
 type SDLValidateExecCallback = (value: Value) => boolean;
@@ -417,18 +423,17 @@ const buildSettings: CompletionTagMap = {
 		values: {
 			type: "string",
 			pattern: {
-				complete: async (info: SDLCompletionInfo): Promise<vscode.CompletionItem[]> =>
-				{
+				complete: async (info: SDLCompletionInfo): Promise<CompletionItem[]> => {
 					if (info.valueIndex == 0) {
 						// dependency name
-						let deps = await served.getDependencies();
+						let deps = await extension.served?.getDependencies() ?? [];
 						return deps
 							.filter(d => d.info !== undefined)
 							.map(d => {
-								let item = new vscode.CompletionItem(d.info!.name);
+								let item = new CompletionItem(d.info!.name);
 								item.filterText = item.insertText = JSON.stringify(d.info!.name); // add quotes
 								item.range = info.valueRange;
-								item.kind = vscode.CompletionItemKind.Property;
+								item.kind = CompletionItemKind.Property;
 								return item;
 							});
 					} else {
@@ -738,13 +743,13 @@ function map(obj: CompletionTagMap, fn: (t: CompletionTag) => CompletionTag): Co
 }
 
 function removeField(fieldName: keyof CompletionTag): (t: CompletionTag) => CompletionTag {
-	return function(obj: CompletionTag) {
+	return function (obj: CompletionTag) {
 		if (fieldName in obj) {
 			obj = JSON.parse(JSON.stringify(obj));
 			delete obj[fieldName];
 		}
 		return obj;
-	}
+	};
 }
 
 let dubSchema = {
@@ -905,20 +910,23 @@ let dubSchema = {
 };
 dubSchema.tags.subPackage.tags = dubSchema.tags;
 
-export class SDLContributions implements vscode.CompletionItemProvider {
-	provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Thenable<vscode.CompletionItem[]> {
+export class SDLContributions implements CompletionItemProvider {
+	async provideCompletionItems(document: TextDocument, position: Position, token: CancellationToken): Promise<CompletionItem[]> {
 		console.log("Completion:");
 		try {
 			var info = getLocationInfo(document, position);
 			console.log(info);
-			if (info.namespace[0] != "")
+
+			if (info.namespace[0] != "") {
 				return <any>Promise.reject("Invalid namespace in info object");
-			if (info.name[0] != "")
+			} else if (info.name[0] != "") {
 				return <any>Promise.reject("Invalid name in info object");
-			if (info.namespace.length != info.name.length)
+			} else if (info.namespace.length != info.name.length) {
 				return <any>Promise.reject("Invalid info object (length mismatch)");
-			if (info.namespace.length <= 0)
+			} else if (info.namespace.length <= 0) {
 				return <any>Promise.reject("Invalid info object (no entry)");
+			}
+
 			let obj: CompletionTag = dubSchema;
 			let len = info.name.length - 1;
 			var found = true;
@@ -936,17 +944,17 @@ export class SDLContributions implements vscode.CompletionItemProvider {
 				console.log("None found");
 				return Promise.resolve([]);
 			}
-			let completions: vscode.CompletionItem[] = [];
+			let completions: CompletionItem[] = [];
 			if (info.type == "block") {
 				if (obj.tags)
 					Object.keys(obj.tags).forEach(key => {
-						let item = new vscode.CompletionItem(key);
-						item.documentation = new vscode.MarkdownString(obj.tags![key].description);
-						item.kind = vscode.CompletionItemKind.Field;
+						let item = new CompletionItem(key);
+						item.documentation = new MarkdownString(obj.tags![key].description);
+						item.kind = CompletionItemKind.Field;
 						if (obj.tags![key].namespace)
-							item.insertText = new vscode.SnippetString().appendText(obj.tags![key].namespace + ":" + key);
+							item.insertText = new SnippetString().appendText(obj.tags![key].namespace + ":" + key);
 						else
-							item.insertText = new vscode.SnippetString().appendText(key);
+							item.insertText = new SnippetString().appendText(key);
 						completions.push(item);
 					});
 			}
@@ -958,39 +966,38 @@ export class SDLContributions implements vscode.CompletionItemProvider {
 				if (obj && obj.values) {
 					if (obj.values.pattern) {
 						if ((<any>obj.values.pattern).complete) {
-							return Promise.resolve((<any>obj.values!.pattern!).complete(info)).then((values) => {
-								values.forEach((value: any) => {
-									if (typeof value == "object" && value instanceof vscode.CompletionItem)
-										completions.push(value);
-									else {
-										let item = new vscode.CompletionItem(value);
-										item.detail = obj.values!.type;
-										item.kind = vscode.CompletionItemKind.Value;
-										item.insertText = new vscode.SnippetString().appendText(value);
-										completions.push(item);
-									}
-								});
-								return completions;
+							const values = await Promise.resolve((<any>obj.values!.pattern!).complete(info));
+							values.forEach((value_2: any) => {
+								if (typeof value_2 == "object" && value_2 instanceof CompletionItem)
+									completions.push(value_2);
+								else {
+									let item_1 = new CompletionItem(value_2);
+									item_1.detail = obj.values!.type;
+									item_1.kind = CompletionItemKind.Value;
+									item_1.insertText = new SnippetString().appendText(value_2);
+									completions.push(item_1);
+								}
 							});
+							return completions;
 						}
 					}
 					else if (obj.values.enum) {
 						obj.values.enum.forEach((value: any) => {
-							let item = new vscode.CompletionItem(value);
+							let item = new CompletionItem(value);
 							item.detail = obj.values!.type;
-							item.kind = vscode.CompletionItemKind.Value;
-							item.insertText = new vscode.SnippetString().appendText(value);
+							item.kind = CompletionItemKind.Value;
+							item.insertText = new SnippetString().appendText(value);
 							completions.push(item);
 						});
 					}
 					else if (obj.values.type == "boolean") {
-						let item = new vscode.CompletionItem("true");
+						let item = new CompletionItem("true");
 						item.detail = obj.values.type;
-						item.kind = vscode.CompletionItemKind.Keyword;
+						item.kind = CompletionItemKind.Keyword;
 						completions.push(item);
-						item = new vscode.CompletionItem("false");
+						item = new CompletionItem("false");
 						item.detail = obj.values.type;
-						item.kind = vscode.CompletionItemKind.Keyword;
+						item.kind = CompletionItemKind.Keyword;
 						completions.push(item);
 					}
 				}
@@ -999,10 +1006,10 @@ export class SDLContributions implements vscode.CompletionItemProvider {
 				// attribute name
 				if (obj.attributes) {
 					Object.keys(obj.attributes).forEach(attribute => {
-						let item = new vscode.CompletionItem(attribute);
-						item.documentation = new vscode.MarkdownString(obj.attributes![attribute].description);
-						item.kind = vscode.CompletionItemKind.Variable;
-						var insertText = new vscode.SnippetString().appendText(attribute + "=");
+						let item = new CompletionItem(attribute);
+						item.documentation = new MarkdownString(obj.attributes![attribute].description);
+						item.kind = CompletionItemKind.Variable;
+						var insertText = new SnippetString().appendText(attribute + "=");
 						if (obj.attributes![attribute].values) {
 							item.detail = obj.attributes![attribute].values.type;
 							if (item.detail == "string")
@@ -1020,15 +1027,17 @@ export class SDLContributions implements vscode.CompletionItemProvider {
 		}
 	}
 
-	resolveCompletionItem(item: vscode.CompletionItem, token: vscode.CancellationToken): Thenable<vscode.CompletionItem | null> {
-		if (item.kind === vscode.CompletionItemKind.Property) {
+	resolveCompletionItem(item: CompletionItem, token: CancellationToken): Thenable<CompletionItem | null> {
+		if (item.kind === CompletionItemKind.Property) {
 			let pack = item.label;
-			if (typeof pack != "string")
+
+			if (typeof pack !== 'string') {
 				pack = pack.label;
+			}
 
 			return getLatestPackageInfo(pack).then(info => {
 				if (info.description) {
-					item.documentation = new vscode.MarkdownString(info.description);
+					item.documentation = new MarkdownString(info.description);
 				}
 				if (info.version) {
 					item.detail = info.version;
@@ -1041,77 +1050,111 @@ export class SDLContributions implements vscode.CompletionItemProvider {
 		return Promise.resolve(null);
 	}
 
-	provideDiagnostics(document: vscode.TextDocument): vscode.Diagnostic[] {
+	provideDiagnostics(document: TextDocument): Diagnostic[] {
 		var root = parseSDL(document.getText());
-		let errors: vscode.Diagnostic[] = [];
+		let errors: Diagnostic[] = [];
+
 		function range(r: [number, number]) {
-			if (!r)
-				return new vscode.Range(0, 0, 0, 0);
-			return new vscode.Range(document.positionAt(r[0]), document.positionAt(r[1]));
+			if (!r) {
+				return new Range(0, 0, 0, 0);
+			} else {
+				return new Range(document.positionAt(r[0]), document.positionAt(r[1]));
+			}
 		}
-		if (root.errors)
+
+		if (root.errors) {
 			root.errors.forEach((error: TagParseError) => {
-				errors.push(new vscode.Diagnostic(range(error.range), error.message, error.type == "error" ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning));
+				errors.push(new Diagnostic(range(error.range), error.message, error.type == "error" ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning));
 			});
+		}
+
 		function checkValue(value: Value, obj: CompletionValues) {
-			if (value.type != obj.type)
-				errors.push(new vscode.Diagnostic(range(value.range), "Type mismatch. Expected type: " + obj.type, vscode.DiagnosticSeverity.Error));
+			if (value.type != obj.type) {
+				errors.push(new Diagnostic(range(value.range), "Type mismatch. Expected type: " + obj.type, DiagnosticSeverity.Error));
+			}
+
 			if (obj.pattern) {
 				if (typeof (<any>obj.pattern).validate == "function") {
 					var msg = (<any>obj.pattern).validate(value);
-					if (msg)
-						errors.push(new vscode.Diagnostic(range(value.range), msg, vscode.DiagnosticSeverity.Error));
+					if (msg) {
+						errors.push(new Diagnostic(range(value.range), msg, DiagnosticSeverity.Error));
+					}
+				} else if (typeof obj.pattern.exec == "function") {
+					if (!obj.pattern.exec(value.value)) {
+						errors.push(new Diagnostic(range(value.range), "This value does not match the pattern", DiagnosticSeverity.Warning));
+					}
 				}
-				else if (typeof obj.pattern.exec == "function")
-					if (!obj.pattern.exec(value.value))
-						errors.push(new vscode.Diagnostic(range(value.range), "This value does not match the pattern", vscode.DiagnosticSeverity.Warning));
 			} else if (obj.enum) {
-				if (obj.enum.indexOf(value.value) == -1 && !obj.enumOptional)
-					errors.push(new vscode.Diagnostic(range(value.range), "This is not a valid value", vscode.DiagnosticSeverity.Error));
+				if (obj.enum.indexOf(value.value) == -1 && !obj.enumOptional) {
+					errors.push(new Diagnostic(range(value.range), "This is not a valid value", DiagnosticSeverity.Error));
+				}
 			}
 		}
+
 		function scanTag(tag: Tag, obj: CompletionTag, nsName = "") {
 			if (obj.tags) {
 				var hasTags = false;
+
 				Object.keys(tag.tags).forEach(tagName => {
 					hasTags = true;
-					if (obj.tags![tagName])
+					if (obj.tags![tagName]) {
 						tag.tags[tagName].forEach(childTag => {
-							if (obj.tags![tagName].namespace && obj.tags![tagName].namespace != nsName && tag.range)
-								errors.push(new vscode.Diagnostic(range(tag.range), "Invalid namespace", vscode.DiagnosticSeverity.Error));
+							if (obj.tags![tagName].namespace && obj.tags![tagName].namespace != nsName && tag.range) {
+								errors.push(new Diagnostic(range(tag.range), "Invalid namespace", DiagnosticSeverity.Error));
+							}
 							scanTag(childTag, obj.tags![tagName]);
 						});
+					}
 				});
-				if (obj.requireTags && !hasTags && tag.range)
-					errors.push(new vscode.Diagnostic(range(tag.range), "This node must have children", vscode.DiagnosticSeverity.Error));
+
+				if (obj.requireTags && !hasTags && tag.range) {
+					errors.push(new Diagnostic(range(tag.range), "This node must have children", DiagnosticSeverity.Error));
+				}
 			}
-			if (obj.namespaces)
+
+			if (obj.namespaces) {
 				Object.keys(tag.namespaces).forEach(nsName => {
-					if (obj.namespaces!.indexOf(nsName) != -1)
+					if (obj.namespaces!.indexOf(nsName) != -1) {
 						scanTag(tag.namespaces[nsName], obj, nsName);
+					}
 				});
+			}
+
 			if (obj.values) {
 				tag.values.forEach(value => {
 					checkValue(value, obj.values!);
 				});
-				if (typeof obj.minValues == "number")
-					if (tag.values.length < obj.minValues && tag.range)
-						errors.push(new vscode.Diagnostic(range(tag.range), "Not enough values. Requires at least " + obj.minValues, vscode.DiagnosticSeverity.Error));
-				if (obj.suggestShouldHaveValues)
-					if (tag.values.length == 0 && tag.range)
-						errors.push(new vscode.Diagnostic(range(tag.range), "This directive should specify some values, otherwise it might not have any effect", vscode.DiagnosticSeverity.Information));
-				if (typeof obj.maxValues == "number")
-					if (tag.values.length > obj.maxValues && tag.range)
-						errors.push(new vscode.Diagnostic(range(tag.range), "Too many values. Allows at most " + obj.maxValues, vscode.DiagnosticSeverity.Error));
+
+				if (typeof obj.minValues == "number") {
+					if (tag.values.length < obj.minValues && tag.range) {
+						errors.push(new Diagnostic(range(tag.range), "Not enough values. Requires at least " + obj.minValues, DiagnosticSeverity.Error));
+					}
+				}
+
+				if (obj.suggestShouldHaveValues) {
+					if (tag.values.length == 0 && tag.range) {
+						errors.push(new Diagnostic(range(tag.range), "This directive should specify some values, otherwise it might not have any effect", DiagnosticSeverity.Information));
+					}
+				}
+
+				if (typeof obj.maxValues == "number") {
+					if (tag.values.length > obj.maxValues && tag.range) {
+						errors.push(new Diagnostic(range(tag.range), "Too many values. Allows at most " + obj.maxValues, DiagnosticSeverity.Error));
+					}
+				}
 			}
-			if (obj.attributes)
+
+			if (obj.attributes) {
 				Object.keys(tag.attributes).forEach(attributeName => {
-					if (obj.attributes![attributeName])
+					if (obj.attributes![attributeName]) {
 						tag.attributes[attributeName].forEach(attribute => {
 							checkValue(attribute, obj.attributes![attributeName].values);
 						});
+					}
 				});
+			}
 		}
+
 		scanTag(root, dubSchema);
 		return errors;
 	}

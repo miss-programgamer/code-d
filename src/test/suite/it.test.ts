@@ -1,60 +1,59 @@
-import * as assert from "assert";
+import { notStrictEqual, strictEqual } from 'assert';
+import { CompletionItem, CompletionItemKind, CompletionList, extensions, Position, Uri, ViewColumn, window, workspace } from 'vscode';
 
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
-import * as vscode from "vscode";
-import { sleep, testCompletion } from "../utils";
-// import * as myExtension from '../../extension';
+import { sleep, testCompletion } from '../utils.js';
+
 
 suite("Integration Tests", () => {
-  vscode.window.showInformationMessage("Start all tests.");
+	window.showInformationMessage("Start all tests.");
 
-  // sanity test that we have the correct window open
-  let workspaces = vscode.workspace.workspaceFolders;
-  assert.strictEqual(workspaces?.length, 1);
-  assert.strictEqual(
-    workspaces[0].uri.fsPath.toLowerCase(),
-    process.env["PROJECT_DIR"]!.toLowerCase()
-  );
-  let workspace = workspaces[0];
+	// sanity test that we have the correct window open
+	let workspaces = workspace.workspaceFolders;
+	strictEqual(workspaces?.length, 1);
+	strictEqual(
+		workspaces[0].uri.fsPath.toLowerCase(),
+		process.env["PROJECT_DIR"]!.toLowerCase()
+	);
 
-  test("check code-d installed", async () => {
-    let coded = vscode.extensions.getExtension("webfreak.code-d")!;
-    assert.notStrictEqual(coded, undefined, "code-d not installed?!");
-  });
+	let ws = workspaces[0];
 
-  function file(relative: string): vscode.Uri {
-    return vscode.Uri.joinPath(workspace.uri, relative);
-  }
+	test("check dlang installed", async () => {
+		let coded = extensions.getExtension("mireille-arseneault.dlang")!;
+		notStrictEqual(coded, undefined, "mireille-arseneault.dlang not installed?!");
+	});
 
-  test("Wait for python and code-d extensions", async () => {
-    let coded = vscode.extensions.getExtension("webfreak.code-d")!;
-    await coded.activate();
-    await sleep(5000); // give sufficient startup time
-  });
+	function file(relative: string): Uri {
+		return Uri.joinPath(ws.uri, relative);
+	}
 
-  test("Recipe file", async () => {
-    let recipe = await vscode.window.showTextDocument(
-      await vscode.workspace.openTextDocument(file("dub.sdl")),
-      vscode.ViewColumn.One
-    );
+	test("Wait for python and dlang extensions", async () => {
+		let coded = extensions.getExtension("mireille-arseneault.dlang")!;
+		await coded.activate();
+		await sleep(5000); // give sufficient startup time
+	});
 
-    await recipe.edit((edit) => {
-      edit.insert(new vscode.Position(2, 0), "dep");
-    });
+	test("Recipe file", async () => {
+		let recipe = await window.showTextDocument(
+			await workspace.openTextDocument(file("dub.sdl")),
+			ViewColumn.One
+		);
 
-    await testCompletion(
-      recipe,
-      new vscode.Position(2, 3),
-      new vscode.CompletionList([
-        new vscode.CompletionItem(
-          "dependency",
-          vscode.CompletionItemKind.Field
-        ),
-      ]),
-      "contains"
-    );
-  });
+		await recipe.edit((edit) => {
+			edit.insert(new Position(2, 0), "dep");
+		});
 
-  // test('interactive', () => new Promise((resolve, reject) => {}));
+		await testCompletion(
+			recipe,
+			new Position(2, 3),
+			new CompletionList([
+				new CompletionItem(
+					"dependency",
+					CompletionItemKind.Field
+				),
+			]),
+			"contains"
+		);
+	});
+
+	// test('interactive', () => new Promise((resolve, reject) => {}));
 });

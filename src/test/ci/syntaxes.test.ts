@@ -1,11 +1,11 @@
-import * as assert from 'assert';
-import * as vscode from 'vscode';
-import * as fs from 'fs';
 import * as path from 'path';
+import * as fs from 'fs';
+import * as assert from 'assert';
 import * as vsctm from 'vscode-textmate';
 import * as oniguruma from 'vscode-oniguruma';
 import { suite, test } from 'mocha';
-import { IRawGrammar } from 'vscode-textmate/release/rawGrammar';
+import { IRawGrammar } from 'vscode-textmate/release/rawGrammar.js';
+
 
 /**
  * Resolves a package relative path (relative to root folder / package.json folder) to the actual path
@@ -16,10 +16,10 @@ function res(pathStr: string): string {
 }
 
 const wasmBin = fs.readFileSync(res('node_modules/vscode-oniguruma/release/onig.wasm')).buffer;
-const vscodeOnigurumaLib = oniguruma.loadWASM(wasmBin).then(() => {
+const vscodeOnigurumaLib = oniguruma.loadWASM(wasmBin as any).then(() => {
 	return {
-		createOnigScanner: function(patterns: any) { return new oniguruma.OnigScanner(patterns); },
-		createOnigString: function(s: any) { return new oniguruma.OnigString(s); }
+		createOnigScanner: function (patterns: any) { return new oniguruma.OnigScanner(patterns); },
+		createOnigString: function (s: any) { return new oniguruma.OnigString(s); }
 	};
 });
 

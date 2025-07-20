@@ -1,14 +1,17 @@
-import * as vscode from "vscode";
-import * as fs from "fs";
-import * as jsonc from 'jsonc-parser';
+import fs from 'node:fs';
+import jsonc from 'jsonc-parser';
+import { CancellationToken, CustomTextEditorProvider, Range, TextDocument, Uri, Webview, WebviewPanel, window, workspace, WorkspaceEdit } from 'vscode';
 
-export class DubEditor implements vscode.CustomTextEditorProvider {
+import extension from '../extension.js';
+
+
+export default class DubEditor implements CustomTextEditorProvider {
 	private static readonly viewType = "code-d.dubRecipe";
 
 	private editorTemplate: Promise<string>;
 
-	constructor(private context: vscode.ExtensionContext) {
-		let editorPath = this.context.asAbsolutePath("html/dubeditor.html");
+	constructor() {
+		let editorPath = extension.context.asAbsolutePath("html/dubeditor.html");
 		this.editorTemplate = new Promise<string>((resolve, reject) => {
 			fs.readFile(editorPath, {
 				encoding: "utf8"
@@ -19,16 +22,17 @@ export class DubEditor implements vscode.CustomTextEditorProvider {
 		});
 	}
 
-	static register(context: vscode.ExtensionContext): { dispose(): any; } {
-		const provider = new DubEditor(context);
-		return vscode.window.registerCustomEditorProvider(DubEditor.viewType, provider);
+	static register(): { dispose(): any; } {
+		const provider = new DubEditor();
+		return window.registerCustomEditorProvider(DubEditor.viewType, provider);
 	}
 
-	async resolveCustomTextEditor(document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel, token: vscode.CancellationToken): Promise<void> {
+	async resolveCustomTextEditor(document: TextDocument, webviewPanel: WebviewPanel, token: CancellationToken): Promise<void> {
 		webviewPanel.webview.options = {
 			enableCommandUris: true,
 			enableScripts: true
 		};
+
 		webviewPanel.webview.html = await this.getHtmlForWebview(webviewPanel.webview);
 
 		function updateWebview() {
@@ -48,7 +52,7 @@ export class DubEditor implements vscode.CustomTextEditorProvider {
 			});
 		}
 
-		const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
+		const changeDocumentSubscription = workspace.onDidChangeTextDocument(e => {
 			if (e.document.uri.toString() === document.uri.toString()) {
 				updateWebview();
 			}
@@ -65,19 +69,20 @@ export class DubEditor implements vscode.CustomTextEditorProvider {
 					try {
 						this.setValue(document, e.arg);
 					} catch (e: any) {
-						vscode.window.showErrorMessage((e.message || e) + "");
+						window.showErrorMessage((e.message || e) + "");
 					}
 					break;
+
 				case "getInput":
 					let callbackId = <string>e.arg.callbackId;
 					let label = <string>e.arg.label;
-					let options = <{ error?: string, placeholder?: string, value?: string } | undefined>e.arg.options;
+					let options = <{ error?: string, placeholder?: string, value?: string; } | undefined>e.arg.options;
 
 					if (options?.error) {
-						vscode.window.showErrorMessage(options.error);
+						window.showErrorMessage(options.error);
 					}
 
-					let res = await vscode.window.showInputBox({
+					let res = await window.showInputBox({
 						title: label,
 						placeHolder: options?.placeholder,
 						value: options?.value
@@ -87,28 +92,33 @@ export class DubEditor implements vscode.CustomTextEditorProvider {
 						type: "callback",
 						id: callbackId,
 						value: res
-					})
+					});
 					break;
+
 				case "showError":
-					vscode.window.showErrorMessage((e.message || e) + "");
+					window.showErrorMessage((e.message || e) + "");
 					break;
+
 				case "showWarning":
-					vscode.window.showWarningMessage((e.message || e) + "");
+					window.showWarningMessage((e.message || e) + "");
 					break;
+
 				case "showInfo":
-					vscode.window.showInformationMessage((e.message || e) + "");
+					window.showInformationMessage((e.message || e) + "");
 					break;
+
 				case "refetch":
 					updateWebview();
 					break;
+
 				default:
-					vscode.window.showErrorMessage("Unknown command " + e.cmd);
+					window.showErrorMessage("Unknown command " + e.cmd);
 					break;
 			}
 		});
 	}
 
-	setValue(doc: vscode.TextDocument, arg: { path: string[], value: any | undefined }) {
+	setValue(doc: TextDocument, arg: { path: string[], value: any | undefined; }) {
 		const root = jsonc.parseTree(doc.getText(), undefined, {
 			disallowComments: true
 		});
@@ -153,7 +163,7 @@ export class DubEditor implements vscode.CustomTextEditorProvider {
 			if (value === undefined) return; // already done, don't need to remove anything
 			let part = arg.path[i];
 			if (part[0] == ":") {
-				throw new Error("invalid code-d editor state");
+				throw new Error("invalid dlang editor state");
 			} else {
 				let obj: any = {};
 				obj[part] = value;
@@ -161,7 +171,7 @@ export class DubEditor implements vscode.CustomTextEditorProvider {
 			}
 		}
 
-		let edit = new vscode.WorkspaceEdit();
+		let edit = new WorkspaceEdit();
 		let key = arg.path[arg.path.length - 1];
 		// now set scope[key] to the new value in the document
 		let existingKey = findChildNodeByKey(scope, key);
@@ -170,8 +180,8 @@ export class DubEditor implements vscode.CustomTextEditorProvider {
 				// delete
 				let start = doc.positionAt(existingKey.offset);
 				let end = doc.positionAt(existingKey.offset + existingKey.length);
-				let leading = doc.getText(new vscode.Range(start.with(start.line - 1, 0), start));
-				let trailing = doc.getText(new vscode.Range(end, end.with(end.line + 1, 100000)));
+				let leading = doc.getText(new Range(start.with(start.line - 1, 0), start));
+				let trailing = doc.getText(new Range(end, end.with(end.line + 1, 100000)));
 				const whitespaceRegex = /\s/;
 				if (trailing.trimStart().startsWith(",")) {
 					// make sure we don't leave a trailing comma + clean up whitespace
@@ -193,13 +203,13 @@ export class DubEditor implements vscode.CustomTextEditorProvider {
 					}
 					start = doc.positionAt(existingKey.offset - (leading.length - i));
 				}
-				edit.delete(doc.uri, new vscode.Range(start, end));
+				edit.delete(doc.uri, new Range(start, end));
 			} else {
 				// value exists, replace
 				let indent = getNodeIndentation(doc, existingKey);
 				let child = (existingKey.children && existingKey.children[1]) || existingKey;
 				edit.replace(doc.uri,
-					new vscode.Range(
+					new Range(
 						doc.positionAt(child.offset),
 						doc.positionAt(child.offset + child.length)
 					),
@@ -219,42 +229,41 @@ export class DubEditor implements vscode.CustomTextEditorProvider {
 			edit.insert(doc.uri,
 				doc.positionAt(last.offset + last.length),
 				",\n" + indent
-					+ JSON.stringify(key) + ": "
-					+ JSON.stringify(value, null, "\t")
+				+ JSON.stringify(key) + ": "
+				+ JSON.stringify(value, null, "\t")
 					.replace(/\n/g, "\n" + indent));
 		} else {
 			throw new Error("invalid JSON");
 		}
-		return vscode.workspace.applyEdit(edit);
+		return workspace.applyEdit(edit);
 	}
 
-	private async getHtmlForWebview(webview: vscode.Webview): Promise<string> {
-		let scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
-			this.context.extensionUri, "html", "dubeditor.js"));
+	private async getHtmlForWebview(webview: Webview): Promise<string> {
+		let scriptUri = webview.asWebviewUri(Uri.joinPath(
+			extension.context.extensionUri, "html", "dubeditor.js"));
 
-		let styleUri = webview.asWebviewUri(vscode.Uri.joinPath(
-			this.context.extensionUri, "html", "dubeditor.css"));
+		let styleUri = webview.asWebviewUri(Uri.joinPath(
+			extension.context.extensionUri, "html", "dubeditor.css"));
 
-		let vscodeUiUri = webview.asWebviewUri(vscode.Uri.joinPath(
-			this.context.extensionUri, "node_modules", "@vscode", "webview-ui-toolkit", "dist", "toolkit.js"));
+		let vscodeUiUri = webview.asWebviewUri(Uri.joinPath(
+			extension.context.extensionUri, "node_modules", "@vscode", "webview-ui-toolkit", "dist", "toolkit.js"));
 
-		let codiconUri = webview.asWebviewUri(vscode.Uri.joinPath(
-			this.context.extensionUri, "node_modules", "@vscode", "codicons", "dist", "codicon.css"));
+		let codiconUri = webview.asWebviewUri(Uri.joinPath(
+			extension.context.extensionUri, "node_modules", "@vscode", "codicons", "dist", "codicon.css"));
 
 		return (await this.editorTemplate)
 			.replace("{{dubEditorStyleUri}}", styleUri.toString())
 			.replace("{{dubEditorScriptUri}}", scriptUri.toString())
 			.replace("{{vscodeuiToolkitUri}}", vscodeUiUri.toString())
-			.replace("{{codiconUri}}", codiconUri.toString())
-		;
+			.replace("{{codiconUri}}", codiconUri.toString());
 	}
 }
 
-function getNodeIndentation(document: vscode.TextDocument, node?: jsonc.Node): string {
+function getNodeIndentation(document: TextDocument, node?: jsonc.Node): string {
 	let indent = "";
 	if (node && node.type == "property") {
 		let pos = document.positionAt(node.offset);
-		indent = document.getText(new vscode.Range(pos.with(undefined, 0), pos));
+		indent = document.getText(new Range(pos.with(undefined, 0), pos));
 		// make sure there is only whitespace
 		const whitespaceRegex = /\s/;
 		for (let i = indent.length - 1; i >= 0; i--) {
