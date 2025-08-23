@@ -8,7 +8,7 @@ export default class GCProfiler {
 	profiles: any[] = [];
 
 	static async listProfileCache() {
-		const entries = await extension.served?.client.sendRequest<any[]>("served/getProfileGCEntries") ?? [];
+		const entries = await extension.served?.client.sendRequest<any[]>('served/getProfileGCEntries') ?? [];
 
 		const items = entries.map(entry => ({
 			description: entry.type,

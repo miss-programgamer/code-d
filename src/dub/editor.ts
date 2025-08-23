@@ -6,17 +6,17 @@ import extension from '../extension.js';
 
 
 export default class DubEditor implements CustomTextEditorProvider {
-	private static readonly viewType = "code-d.dubRecipe";
+	private static readonly viewType = 'code-d.dubRecipe';
 
 	private editorTemplate: Promise<string>;
 
 	constructor() {
-		let editorPath = extension.context.asAbsolutePath("html/dubeditor.html");
+		let editorPath = extension.context.asAbsolutePath('html/dubeditor.html');
 		this.editorTemplate = new Promise<string>((resolve, reject) => {
 			fs.readFile(editorPath, {
-				encoding: "utf8"
+				encoding: 'utf8'
 			}, (err, data) => {
-				if (err) reject(new Error("Failed to read dubeditor: " + err));
+				if (err) reject(new Error(`Failed to read dubeditor: ${err}`));
 				else resolve(data);
 			});
 		});
@@ -39,7 +39,7 @@ export default class DubEditor implements CustomTextEditorProvider {
 			let errors: jsonc.ParseError[] = [];
 			let parsed = jsonc.parse(document.getText(), errors);
 			webviewPanel.webview.postMessage({
-				type: "update",
+				type: 'update',
 				json: parsed,
 				errors: errors.map(err => {
 					let loc = document.positionAt(err.offset);
@@ -65,15 +65,15 @@ export default class DubEditor implements CustomTextEditorProvider {
 
 		webviewPanel.webview.onDidReceiveMessage(async (e) => {
 			switch (e.cmd) {
-				case "setValue":
+				case 'setValue':
 					try {
 						this.setValue(document, e.arg);
 					} catch (e: any) {
-						window.showErrorMessage((e.message || e) + "");
+						window.showErrorMessage(`${e.message ?? e}`);
 					}
 					break;
 
-				case "getInput":
+				case 'getInput':
 					let callbackId = <string>e.arg.callbackId;
 					let label = <string>e.arg.label;
 					let options = <{ error?: string, placeholder?: string, value?: string; } | undefined>e.arg.options;
@@ -89,30 +89,30 @@ export default class DubEditor implements CustomTextEditorProvider {
 					});
 
 					webviewPanel.webview.postMessage({
-						type: "callback",
+						type: 'callback',
 						id: callbackId,
 						value: res
 					});
 					break;
 
-				case "showError":
-					window.showErrorMessage((e.message || e) + "");
+				case 'showError':
+					window.showErrorMessage(`${e.message ?? e}`);
 					break;
 
-				case "showWarning":
-					window.showWarningMessage((e.message || e) + "");
+				case 'showWarning':
+					window.showWarningMessage(`${e.message ?? e}`);
 					break;
 
-				case "showInfo":
-					window.showInformationMessage((e.message || e) + "");
+				case 'showInfo':
+					window.showInformationMessage(`${e.message ?? e}`);
 					break;
 
-				case "refetch":
+				case 'refetch':
 					updateWebview();
 					break;
 
 				default:
-					window.showErrorMessage("Unknown command " + e.cmd);
+					window.showErrorMessage(`Unknown command ${e.cmd}`);
 					break;
 			}
 		});
@@ -123,24 +123,26 @@ export default class DubEditor implements CustomTextEditorProvider {
 			disallowComments: true
 		});
 		if (!root) {
-			throw new Error(doc.fileName + " does not contain valid JSON, please recreate.");
+			throw new Error(`${doc.fileName} does not contain valid JSON, please recreate.`);
 		}
 		let value = arg.value;
 
-		if (!Array.isArray(arg.path) || typeof arg.path == "string")
-			throw new Error("invalid path");
+		if (!Array.isArray(arg.path) || typeof arg.path === 'string')
+			throw new Error('invalid path');
 
 		// compute minimal insert edit
 		let scope = root;
 		let i = 0;
 		for (; i < arg.path.length - 1; i++) {
 			let part = arg.path[i];
-			if (part[0] == ":") {
-				let [key, value] = part.substr(1).split("=", 2);
+			if (part[0] === ':') {
+				let [key, value] = part.substr(1).split('=', 2);
 				// find "key": value in json
-				if (scope.type == "property" && scope.children)
+				if (scope.type === 'property' && scope.children) {
 					scope = scope.children[1];
-				if (scope.type == "array" && scope.children) {
+				}
+
+				if (scope.type === 'array' && scope.children) {
 					for (let i = 0; i < scope.children.length; i++) {
 						const child = scope.children[i];
 						let match = findChildNodeByKey(child, key);
@@ -162,8 +164,8 @@ export default class DubEditor implements CustomTextEditorProvider {
 		for (let remaining = arg.path.length - 2; remaining >= i; remaining--) {
 			if (value === undefined) return; // already done, don't need to remove anything
 			let part = arg.path[i];
-			if (part[0] == ":") {
-				throw new Error("invalid dlang editor state");
+			if (part[0] === ':') {
+				throw new Error('invalid dlang editor state');
 			} else {
 				let obj: any = {};
 				obj[part] = value;
@@ -183,7 +185,7 @@ export default class DubEditor implements CustomTextEditorProvider {
 				let leading = doc.getText(new Range(start.with(start.line - 1, 0), start));
 				let trailing = doc.getText(new Range(end, end.with(end.line + 1, 100000)));
 				const whitespaceRegex = /\s/;
-				if (trailing.trimStart().startsWith(",")) {
+				if (trailing.trimStart().startsWith(',')) {
 					// make sure we don't leave a trailing comma + clean up whitespace
 					let i = trailing.indexOf(',');
 					for (; i < trailing.length - 1; i++) {
@@ -192,7 +194,7 @@ export default class DubEditor implements CustomTextEditorProvider {
 						}
 					}
 					end = doc.positionAt(existingKey.offset + existingKey.length + i + 1);
-				} else if (leading.trimEnd().endsWith(",")) {
+				} else if (leading.trimEnd().endsWith(',')) {
 					// no trailing comma, but comma before (last item in object)
 					// so delete comma before + clean up whitespace
 					let i = leading.lastIndexOf(',');
@@ -206,15 +208,10 @@ export default class DubEditor implements CustomTextEditorProvider {
 				edit.delete(doc.uri, new Range(start, end));
 			} else {
 				// value exists, replace
-				let indent = getNodeIndentation(doc, existingKey);
-				let child = (existingKey.children && existingKey.children[1]) || existingKey;
-				edit.replace(doc.uri,
-					new Range(
-						doc.positionAt(child.offset),
-						doc.positionAt(child.offset + child.length)
-					),
-					JSON.stringify(value, null, "\t")
-						.replace(/\n/g, "\n" + indent));
+				const indent = getNodeIndentation(doc, existingKey);
+				const child = (existingKey.children && existingKey.children[1]) || existingKey;
+				const range = new Range(doc.positionAt(child.offset), doc.positionAt(child.offset + child.length));
+				edit.replace(doc.uri, range, JSON.stringify(value, null, '\t').replace(/\n/g, `\n${indent}`));
 			}
 		} else if (scope.children) {
 			if (value === undefined) return; // already done, don't need to remove anything
@@ -223,45 +220,41 @@ export default class DubEditor implements CustomTextEditorProvider {
 
 			// does not exist yet, append property at end of object
 			let last = scope.children[scope.children.length - 1];
-			if (!last)
-				throw new Error("invalid JSON");
+			if (!last) {
+				throw new Error('invalid JSON');
+			}
 			// insert after last value
-			edit.insert(doc.uri,
-				doc.positionAt(last.offset + last.length),
-				",\n" + indent
-				+ JSON.stringify(key) + ": "
-				+ JSON.stringify(value, null, "\t")
-					.replace(/\n/g, "\n" + indent));
+			edit.insert(doc.uri, doc.positionAt(last.offset + last.length), `,\n${indent}${JSON.stringify(key)}: ${JSON.stringify(value, null, '\t').replace(/\n/g, `\n${indent}`)}`);
 		} else {
-			throw new Error("invalid JSON");
+			throw new Error('invalid JSON');
 		}
 		return workspace.applyEdit(edit);
 	}
 
 	private async getHtmlForWebview(webview: Webview): Promise<string> {
 		let scriptUri = webview.asWebviewUri(Uri.joinPath(
-			extension.context.extensionUri, "html", "dubeditor.js"));
+			extension.context.extensionUri, 'html', 'dubeditor.js'));
 
 		let styleUri = webview.asWebviewUri(Uri.joinPath(
-			extension.context.extensionUri, "html", "dubeditor.css"));
+			extension.context.extensionUri, 'html', 'dubeditor.css'));
 
 		let vscodeUiUri = webview.asWebviewUri(Uri.joinPath(
-			extension.context.extensionUri, "node_modules", "@vscode", "webview-ui-toolkit", "dist", "toolkit.js"));
+			extension.context.extensionUri, 'node_modules', '@vscode', 'webview-ui-toolkit', 'dist', 'toolkit.js'));
 
 		let codiconUri = webview.asWebviewUri(Uri.joinPath(
-			extension.context.extensionUri, "node_modules", "@vscode", "codicons", "dist", "codicon.css"));
+			extension.context.extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css'));
 
 		return (await this.editorTemplate)
-			.replace("{{dubEditorStyleUri}}", styleUri.toString())
-			.replace("{{dubEditorScriptUri}}", scriptUri.toString())
-			.replace("{{vscodeuiToolkitUri}}", vscodeUiUri.toString())
-			.replace("{{codiconUri}}", codiconUri.toString());
+			.replace('{{dubEditorStyleUri}}', styleUri.toString())
+			.replace('{{dubEditorScriptUri}}', scriptUri.toString())
+			.replace('{{vscodeuiToolkitUri}}', vscodeUiUri.toString())
+			.replace('{{codiconUri}}', codiconUri.toString());
 	}
 }
 
 function getNodeIndentation(document: TextDocument, node?: jsonc.Node): string {
-	let indent = "";
-	if (node && node.type == "property") {
+	let indent = '';
+	if (node && node.type === 'property') {
 		let pos = document.positionAt(node.offset);
 		indent = document.getText(new Range(pos.with(undefined, 0), pos));
 		// make sure there is only whitespace
@@ -277,16 +270,20 @@ function getNodeIndentation(document: TextDocument, node?: jsonc.Node): string {
 }
 
 function findChildNodeByKey(node: jsonc.Node, key: string): jsonc.Node | undefined {
-	if (!node.children)
+	if (!node.children) {
 		return undefined;
+	}
 
 	for (let i = 0; i < node.children.length; i++) {
 		const child = node.children[i];
-		if (child.type != "property" || !child.children)
+		if (child.type !== 'property' || !child.children) {
 			continue;
+		}
 		// "property" has children [key, value] of type [Node(string), Node(any)]
-		if (child.children[0].value === key)
+		if (child.children[0].value === key) {
 			return child;
+		}
 	}
+
 	return undefined;
 }

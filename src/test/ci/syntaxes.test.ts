@@ -12,7 +12,7 @@ import { IRawGrammar } from 'vscode-textmate/release/rawGrammar.js';
  * @param pathStr the package relative path to resolve to an actual path
  */
 function res(pathStr: string): string {
-	return path.join(__dirname, "../../../", pathStr);
+	return path.join(__dirname, '../../../', pathStr);
 }
 
 const wasmBin = fs.readFileSync(res('node_modules/vscode-oniguruma/release/onig.wasm')).buffer;
@@ -35,16 +35,13 @@ const registry = new vsctm.Registry({
 		if (scopeName === 'source.diet') {
 			const data = await readFile('syntaxes/diet.json');
 			return vsctm.parseRawGrammar(data.toString(), 'syntaxes/diet.json');
-		}
-		else if (scopeName === 'source.d') {
+		} else if (scopeName === 'source.d') {
 			const data = await readFile('syntaxes/d.json');
 			return vsctm.parseRawGrammar(data.toString(), 'syntaxes/d.json');
-		}
-		else if (scopeName === 'source.dml') {
+		} else if (scopeName === 'source.dml') {
 			const data = await readFile('syntaxes/dml.json');
 			return vsctm.parseRawGrammar(data.toString(), 'syntaxes/dml.json');
-		}
-		else if (scopeName === 'source.sdl') {
+		} else if (scopeName === 'source.sdl') {
 			const data = await readFile('syntaxes/sdl.json');
 			return vsctm.parseRawGrammar(data.toString(), 'syntaxes/sdl.json');
 		}
@@ -55,19 +52,22 @@ const registry = new vsctm.Registry({
 
 function testSyntaxes(grammar: vsctm.IGrammar, folder: string, ext: string) {
 	return new Promise((resolve, reject) => {
-		if (!fs.existsSync(res(folder)))
+		if (!fs.existsSync(res(folder))) {
 			return resolve(null);
+		}
 
 		fs.readdir(res(folder), async (err, files) => {
-			if (err)
+			if (err) {
 				return reject(err);
+			}
 
 			try {
 				for (let i = 0; i < files.length; i++) {
 					const file = files[i];
 
-					if (!file.endsWith(ext))
+					if (!file.endsWith(ext)) {
 						continue;
+					}
 
 					let ruleStack = vsctm.INITIAL;
 
@@ -81,14 +81,14 @@ function testSyntaxes(grammar: vsctm.IGrammar, folder: string, ext: string) {
 						};
 					}));
 
-					const actual = tokens.map(line => JSON.stringify(line)).join("\n");
-					fs.writeFileSync(res(path.join(folder, file) + ".actual"), actual);
+					const actual = tokens.map(line => JSON.stringify(line)).join('\n');
+					fs.writeFileSync(res(`${path.join(folder, file)}.actual`), actual);
 
-					const expectedText = await readFile(path.join(folder, file) + ".expected");
+					const expectedText = await readFile(`${path.join(folder, file)}.expected`);
 					const expectedLines = expectedText.toString().split(/\r?\n/g);
 					const expectedTokens = expectedLines.map(line => JSON.parse(line));
 
-					assert.deepStrictEqual(tokens, expectedTokens, "error in " + file);
+					assert.deepStrictEqual(tokens, expectedTokens, `error in ${file}`);
 				}
 				resolve(undefined);
 			}
@@ -99,29 +99,28 @@ function testSyntaxes(grammar: vsctm.IGrammar, folder: string, ext: string) {
 	});
 }
 
-suite("syntax tests", () => {
-	test("diet", () => {
-		return registry.loadGrammar('source.diet').then(grammar => {
-			if (!grammar)
-				throw new Error("grammar didn't load");
-
-			return testSyntaxes(grammar, "src/test/ci/syntax/diet", ".dt");
-		});
+suite('syntax tests', () => {
+	test('diet', async () => {
+		const grammar = await registry.loadGrammar('source.diet');
+		if (!grammar) {
+			throw new Error('grammar didn\'t load');
+		}
+		return await testSyntaxes(grammar, 'src/test/ci/syntax/diet', '.dt');
 	});
-	test("d", () => {
-		return registry.loadGrammar('source.d').then(grammar => {
-			if (!grammar)
-				throw new Error("grammar didn't load");
 
-			return testSyntaxes(grammar, "src/test/ci/syntax/d", ".d");
-		});
+	test('d', async () => {
+		const grammar = await registry.loadGrammar('source.d');
+		if (!grammar) {
+			throw new Error('grammar didn\'t load');
+		}
+		return await testSyntaxes(grammar, 'src/test/ci/syntax/d', '.d');
 	});
-	test("dml", () => {
-		return registry.loadGrammar('source.dml').then(grammar => {
-			if (!grammar)
-				throw new Error("grammar didn't load");
 
-			return testSyntaxes(grammar, "src/test/ci/syntax/dml", ".dml");
-		});
+	test('dml', async () => {
+		const grammar = await registry.loadGrammar('source.dml');
+		if (!grammar) {
+			throw new Error('grammar didn\'t load');
+		}
+		return await testSyntaxes(grammar, 'src/test/ci/syntax/dml', '.dml');
 	});
 });

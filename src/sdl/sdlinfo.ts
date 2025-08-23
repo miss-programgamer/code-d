@@ -3,7 +3,7 @@ import { Position, Range, TextDocument, Uri } from 'vscode';
 import { parseSDL, Tag, Value } from './sdlparse.js';
 
 
-export type SDLLocationType = "block" | "value" | "attribute";
+export type SDLLocationType = 'block' | 'value' | 'attribute';
 export interface SDLCompletionInfo {
 	uri: Uri,
 	currentSDLObject: Tag;
@@ -20,8 +20,8 @@ export function getLocationInfo(document: TextDocument, position: Position): SDL
 	var root = parseSDL(document.getText());
 	var pos = document.offsetAt(position);
 	var current: Tag[] = [root];
-	var currentNamespace = [""];
-	var currentName = [""];
+	var currentNamespace = [''];
+	var currentName = [''];
 
 	(function findContext() {
 		var prevCur = current.length;
@@ -31,7 +31,7 @@ export function getLocationInfo(document: TextDocument, position: Position): SDL
 					if (tag.range) {
 						if (pos >= tag.range[0] && pos < tag.range[1]) {
 							current.push(tag);
-							currentNamespace.push("");
+							currentNamespace.push('');
 							currentName.push(key);
 							findContext();
 							return;
@@ -61,58 +61,59 @@ export function getLocationInfo(document: TextDocument, position: Position): SDL
 		}
 	})();
 
-	var locationType: SDLLocationType = "block";
+	var locationType: SDLLocationType = 'block';
 	var namespaceStack = currentNamespace;
 	var nameStack = currentName;
 	var valueContent: Value | undefined = undefined;
 	var valueIndex = -1;
-	var partialContent = "";
+	var partialContent = '';
 
 	function findInValues(values: Value[], attribName?: string) {
 		values.forEach((value, i) => {
 			if (pos >= value.ownerRange[0] && pos < value.ownerRange[1]) {
-				if (value.type == "none") {
-					if (value.range[0] == value.range[1])
-						locationType = "attribute";
-					else
-						locationType = "value";
+				if (value.type === 'none') {
+					if (value.range[0] == value.range[1]) {
+						locationType = 'attribute';
+					} else {
+						locationType = 'value';
+					}
 					namespaceStack.push(value.namespace);
-					nameStack.push(attribName || "");
+					nameStack.push(attribName ?? '');
 					valueContent = undefined;
-					partialContent = "";
+					partialContent = '';
+					valueIndex = i;
+				} else {
+					locationType = 'attribute';
+					namespaceStack.push(value.namespace);
+					nameStack.push(attribName ?? '');
+					valueContent = undefined;
+					partialContent = '';
 					valueIndex = i;
 				}
-				else {
-					locationType = "attribute";
-					namespaceStack.push(value.namespace);
-					nameStack.push(attribName || "");
-					valueContent = undefined;
-					partialContent = "";
-					valueIndex = i;
-				}
-			}
-			else if (pos >= value.range[0] && pos < value.range[1]) {
-				locationType = "value";
+			} else if (pos >= value.range[0] && pos < value.range[1]) {
+				locationType = 'value';
 				namespaceStack.push(value.namespace);
-				nameStack.push(attribName || "");
+				nameStack.push(attribName ?? '');
 				valueContent = value;
 				partialContent = valueContent.value.substr(0, value.range[0] - pos);
 				valueIndex = i;
 			}
 		});
 	}
+
 	var curr = current[current.length - 1];
 	findInValues(curr.values);
 	Object.keys(curr.attributes).forEach(key => {
 		findInValues(curr.attributes[key], key);
 	});
-	if (locationType == "block" && curr.attributesRange) {
+
+	if (locationType === 'block' && curr.attributesRange) {
 		if (pos >= curr.attributesRange[0] && pos < curr.attributesRange[1]) {
-			locationType = "attribute";
-			namespaceStack.push("");
-			nameStack.push("");
+			locationType = 'attribute';
+			namespaceStack.push('');
+			nameStack.push('');
 			valueContent = undefined;
-			partialContent = "";
+			partialContent = '';
 		}
 	}
 
@@ -131,7 +132,7 @@ export function getLocationInfo(document: TextDocument, position: Position): SDL
 		type: locationType,
 		namespace: namespaceStack,
 		name: nameStack,
-		value: (<Value | undefined>valueContent)?.value ?? "",
+		value: (valueContent as Value | undefined)?.value ?? '',
 		valueRange: range,
 		valueIndex: valueIndex,
 		partial: partialContent

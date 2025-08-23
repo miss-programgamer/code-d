@@ -1,53 +1,84 @@
-export function cmpSemver(as: string, bs: string): number {
-	const a = parseSimpleSemver(as);
-	const b = parseSimpleSemver(bs);
+export function cmpSemver(v1: string | SimpleSemver, v2: string | SimpleSemver): number {
+	if (typeof v1 === 'string') {
+		v1 = parseSimpleSemver(v1);
+	}
+
+	if (typeof v2 === 'string') {
+		v2 = parseSimpleSemver(v2);
+	}
 
 	for (let i = 0; i < 3; i++) {
-		if (a[i] < b[i]) return -1;
-		else if (a[i] > b[i]) return 1;
-	}
-
-	// pre-release on a but not on b
-	if (a[3].length > 0 && b[3].length == 0) return -1;
-	// pre-release on b but not on a
-	else if (a[3].length == 0 && b[3].length > 0) return 1;
-
-	const min = Math.min(a[3].length, b[3].length);
-	for (let i = 0; i < min; i++) {
-		if (a[3][i] < b[3][i])
+		if (v1[i] < v2[i]) {
 			return -1;
-		else if (a[3][i] > b[3][i])
+		} else if (v1[i] > v2[i]) {
 			return 1;
-	}
-
-	if (a[3].length == b[3].length) return 0;
-	else if (a[3].length < b[3].length) return -1;
-	else return 1;
-}
-
-export function parseSimpleSemver(a: string): [number, number, number, (string | number)[]] {
-	if (a.startsWith("~")) return [0, 0, 0, [a]];
-	if (a.startsWith("v")) a = a.substr(1);
-
-	const plus = a.indexOf('+');
-	if (plus != -1) a = a.substr(0, plus);
-
-	const hyphen = a.indexOf('-');
-	let preRelease: (string | number)[] = [];
-	if (hyphen != -1) {
-		let part = a.substr(hyphen + 1);
-		a = a.substr(0, hyphen);
-
-		preRelease = part.split('.');
-		for (let i = 0; i < preRelease.length; i++) {
-			const n = parseInt(<string>preRelease[i]);
-			if (isFinite(n))
-				preRelease[i] = n;
 		}
 	}
 
-	const parts = a.split('.');
-	if (parts.length != 3)
-		throw new Error("Version specification '" + a + "' not parsable by simple semver rules");
-	return [parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]), preRelease];
+	// pre-release takes priority
+	if (v1[3].length > 0 && v2[3].length === 0) {
+		return -1;
+	} else if (v1[3].length === 0 && v2[3].length > 0) {
+		return 1;
+	}
+
+	const min = Math.min(v1[3].length, v2[3].length);
+	for (let i = 0; i < min; i++) {
+		if (v1[3][i] < v2[3][i]) {
+			return -1;
+		} else if (v1[3][i] > v2[3][i]) {
+			return 1;
+		}
+	}
+
+	if (v1[3].length == v2[3].length) {
+		return 0;
+	} else if (v1[3].length < v2[3].length) {
+		return -1;
+	} else {
+		return 1;
+	}
 }
+
+export function parseSimpleSemver(version: string): SimpleSemver {
+	if (version.startsWith('~')) {
+		return [0, 0, 0, [version]];
+	}
+
+	// Truncate leading 'v'
+	if (version.startsWith('v')) {
+		version = version.substring(1);
+	}
+
+	// Truncate trailing plus and rest
+	const plusIndex = version.indexOf('+');
+	if (plusIndex !== -1) {
+		version = version.substring(0, plusIndex);
+	}
+
+	let preRelease: (string | number)[] = [];
+
+	// Handle pre-release tags after hyphen
+	const hyphenIndex = version.indexOf('-');
+	if (hyphenIndex !== -1) {
+		const suffix = version.substring(hyphenIndex + 1);
+
+		preRelease = suffix.split('.').map(part => {
+			const num = parseInt(part);
+			return isFinite(num) ? num : part;
+		});
+
+		version = version.substring(0, hyphenIndex);
+	}
+
+	const parts = version.split('.');
+
+	if (parts.length !== 3) {
+		throw new Error(`Version specification '${version}' not parsable by simple semver rules`);
+	}
+
+	const [major, minor, patch] = parts.map(parseInt);
+	return [major, minor, patch, preRelease];
+}
+
+export type SimpleSemver = [number, number, number, (string | number)[]];

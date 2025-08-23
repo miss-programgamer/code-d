@@ -29,7 +29,7 @@ class WorkState {
 				location: ProgressLocation.Notification,
 				cancellable: true
 			}, (progress, token) => {
-				progress.report({ message: "Looking up documentation" });
+				progress.report({ message: 'Looking up documentation' });
 				return new Promise((resolve, reject) => {
 					token.onCancellationRequested((e) => {
 						this.done = true;
@@ -111,7 +111,7 @@ class WorkState {
 			let bestScore = 60;
 			for (let i = 0; i < this.items.length; i++) {
 				const item = this.items[i];
-				if (item.label === this.query || item.label.endsWith("/" + this.query)) {
+				if (item.label === this.query || item.label.endsWith(`/${this.query}`)) {
 					perfect.push(item);
 					bestScore = 100;
 				} else if (item.label.endsWith(this.query) && item.score > bestScore) {
@@ -157,12 +157,14 @@ export function showDpldocsSearch(query?: string, fastOpen: boolean = false) {
 	}
 	quickpick.onDidChangeValue((value) => updateSearch(value));
 
-	quickpick.placeholder = "Enter search term for symbol...";
+	quickpick.placeholder = 'Enter search term for symbol...';
 	quickpick.onDidAccept(() => {
 		var selection = quickpick.selectedItems[0];
-		if (selection)
+		if (selection) {
 			showDocItemUI(selection);
+		}
 	});
+
 	state.show();
 
 	if (query) {
@@ -172,24 +174,26 @@ export function showDpldocsSearch(query?: string, fastOpen: boolean = false) {
 }
 
 export async function fillDplDocs(panel: WebviewPanel, label: string, href: string) {
-	panel.webview.html = "<h1>" + label + "</h1>";
+	panel.webview.html = `<h1>${label}</h1>`;
 
-	if (href.startsWith("//"))
-		href = "https:" + href;
+	if (href.startsWith('//')) {
+		href = `https:${href}`;
+	}
 
-	if (!href.startsWith("http:") && !href.startsWith("https:")) {
+	if (!href.startsWith('http:') && !href.startsWith('https:')) {
 		panel.webview.html = `<h1>${label}</h1><p>Non-docs URL: <a href="${href}">${href}</a></p>`;
-
 		return;
 	}
 
 	let body = (await reqText().get(href)).data;
 
 	let content = new JSDOM(body);
-	let page = content.window.document.getElementById("page-body");
-	if (page) {
-		let nonce = Math.random().toString(36).substr(2) + Math.random().toString(36).substr(2) + Math.random().toString(36).substr(2);
-		let font = workspace.getConfiguration("editor").get("fontFamily") || "monospace";
+	let page = content.window.document.getElementById('page-body');
+
+	if (page != null) {
+		let nonce = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+		let font = workspace.getConfiguration('editor').get('fontFamily') ?? 'monospace';
+
 		panel.webview.html = `<!DOCTYPE html>
 			<html lang="en">
 			<head>
@@ -420,83 +424,105 @@ async function loadDependencyPackageDocumentations(state: WorkState) {
 
 	let deps: any[] = await extension.served.getChildren();
 	var checked: string[] = [];
-	deps.forEach(dep => {
+
+	for (const dep of deps) {
 		if (dep.info) {
 			var strippedVersion = dep.info.version;
-			if (strippedVersion.startsWith("~"))
+
+			if (strippedVersion.startsWith('~')) {
 				strippedVersion = strippedVersion.substr(1);
+			}
 
 			var strippedName = dep.info.name;
-			var colon = strippedName.indexOf(":");
-			if (colon != -1)
+			var colon = strippedName.indexOf(':');
+
+			if (colon != -1) {
 				strippedName = strippedName.substr(0, colon);
-			if (checked.indexOf(strippedName) != -1)
+			}
+
+			if (checked.indexOf(strippedName) != -1) {
 				return;
+			}
+
 			checked.push(strippedName);
 
-			if (state.done)
+			if (state.done) {
 				return;
+			}
 
 			state.startWork();
-			loadDependencySymbolsOnline(dep.info, strippedName, strippedVersion).then(docs => {
-				state.finishWork();
-				state.depItems[dep.info!.name] = docs;
-				state.refreshItems();
-			});
+			const docs = await loadDependencySymbolsOnline(dep.info, strippedName, strippedVersion);
+			state.finishWork();
+			state.depItems[dep.info!.name] = docs;
+			state.refreshItems();
 		}
-	});
+	}
 }
 
 export function loadDependencySymbolsOnline(
 	dep: DubDependencyInfo | undefined,
 	strippedDependencyName: string,
 	strippedDependencyVersion: string): Promise<DocItem[]> {
-	let url = `https://${encodeURIComponent(strippedDependencyName)}.dpldocs.info/${encodeURIComponent(strippedDependencyVersion)}/search-results.html`;
 
-	let retried = false;
-	let doTry = function (url: string): Promise<DocItem[]> {
-		return reqText().get(url, { headers: { "Accept-Encoding": "gzip" } }).then((body) => {
-			if (body.status == 200) {
-				if ((body.headers["content-length"] || body.headers["Content-Length"])) {
-					return parseDependencySearchResult(body.data, dep, strippedDependencyName, strippedDependencyVersion);
-				} else if (!retried) {
-					retried = true;
-					return doTry(url);
-				} else {
-					throw body;
-				}
-			} else throw body;
-		});
-	};
-	return doTry(url);
+	const retryLimit = 1;
+	const url = `https://${encodeURIComponent(strippedDependencyName)}.dpldocs.info/${encodeURIComponent(strippedDependencyVersion)}/search-results.html`;
+
+	let retryCount: number = 0;
+
+	async function tryLoad(): Promise<DocItem[]> {
+		const body = await reqText().get(url, { headers: { 'Accept-Encoding': 'gzip' } });
+
+		if (body.status === 200) {
+			if ((body.headers['content-length'] || body.headers['Content-Length'])) {
+				return parseDependencySearchResult(body.data, dep, strippedDependencyName, strippedDependencyVersion);
+			} else if (retryCount < retryLimit) {
+				++retryCount;
+				return tryLoad();
+			} else {
+				throw body;
+			}
+		} else {
+			throw body;
+		}
+	}
+
+	return tryLoad();
 }
 
-
 function updateRootSearchQuery(timeout: NodeJS.Timeout | undefined, value: string, state: WorkState, delay: number = 500): NodeJS.Timeout {
-	if (timeout !== undefined)
+	if (timeout !== undefined) {
 		clearTimeout(timeout);
+	}
+
 	return setTimeout(async () => {
-		if (state.done)
+		if (state.done) {
 			return;
+		}
 
 		state.startWork();
+
 		try {
-			let body = (await reqText().get("https://dpldocs.info/locate?q=" + encodeURIComponent(value))).data;
+			const response = await reqText().get(`https://dpldocs.info/locate?q=${encodeURIComponent(value)}`);
+			const body = response.data;
+
 			state.finishWork();
 			state.items = [];
-			let dom = new JSDOM(body);
-			let results = <Element[]><any>dom.window.document.querySelectorAll("dt.search-result");
-			results.forEach(dt => {
-				let item = parseDocItem(dt);
-				if (item)
+
+			const dom = new JSDOM(body);
+			const results = dom.window.document.querySelectorAll('dt.search-result') as any as Element[];
+
+			for (const dt of results) {
+				const item = parseDocItem(dt);
+				if (item) {
 					state.items.push(item);
-			});
-		}
-		catch (e) {
-			console.error("Failed searching dpldocs: ", e);
+				}
+			}
+		} catch (e) {
+			console.error('Failed searching dpldocs: ', e);
 			state.finishWork();
 			state.items = [];
 		}
+
 		state.refreshItems();
 	}, delay);
 }
@@ -506,36 +532,52 @@ function parseDependencySearchResult(
 	dep: DubDependencyInfo | undefined,
 	strippedDependencyName: string,
 	strippedDependencyVersion: string): DocItem[] {
-	let start = body.indexOf("<adrdox>");
-	if (start == -1)
-		return [];
-	let end = body.indexOf("</adrdox>", start);
-	if (end == -1)
-		return [];
 
-	let content = body.substring(start, end + "</adrdox>".length);
-	let xml = new DOMParser().parseFromString(content, "text/xml");
-	let decls = xml.getElementsByTagName("decl");
-	let localItems: DocItem[] = [];
+	const start = body.indexOf('<adrdox>');
+
+	if (start === -1) {
+		return [];
+	}
+
+	const end = body.indexOf('</adrdox>', start);
+
+	if (end === -1) {
+		return [];
+	}
+
+	const content = body.substring(start, end + '</adrdox>'.length);
+	const xml = new DOMParser().parseFromString(content, 'text/xml');
+	const decls = xml.getElementsByTagName('decl');
+	const localItems: DocItem[] = [];
+
 	for (let j = 0; j < decls.length; j++) {
 		let docEntry = parseDocEntry(decls[j]);
 		if (docEntry.name && docEntry.link) {
-			let href = docEntry.link;
-			let m;
-			if (m = /\.(\d+)\.html/.exec(href))
-				if (parseInt(m[1]) > 1)
+			const href = docEntry.link;
+
+			const regex = /\.(\d+)\.html/;
+			const match = regex.exec(href);
+			if (match != null) {
+				if (parseInt(match[1]) > 1) {
 					continue;
+				}
+			}
+
 			let obj: DocItem = {
 				dependency: dep,
-				label: strippedDependencyName + "/" + docEntry.name,
+				label: `${strippedDependencyName}/${docEntry.name}`,
 				href: `https://${encodeURIComponent(strippedDependencyName)}.dpldocs.info/${encodeURIComponent(strippedDependencyVersion)}/${encodeURIComponent(href)}`,
 				score: 0
 			};
-			if (docEntry.desc)
+
+			if (docEntry.desc) {
 				obj.detail = docEntry.desc;
+			}
+
 			localItems.push(obj);
 		}
 	}
+
 	return localItems;
 }
 
@@ -549,17 +591,20 @@ function parseDocEntry(declElem: Element): DocEntry {
 	let name: Element | null = null;
 	let link: Element | null = null;
 	let desc: Element | null = null;
+
 	for (let i = 0; i < declElem.childNodes.length; i++) {
-		let child = <any>declElem.childNodes[i];
-		if (child.tagName) {
-			if (child.tagName.toLowerCase() == "name")
+		const child = declElem.childNodes[i] as any;
+		if (child.tagName != null) {
+			if (child.tagName.toLowerCase() === 'name') {
 				name = child;
-			else if (child.tagName.toLowerCase() == "link")
+			} else if (child.tagName.toLowerCase() === 'link') {
 				link = child;
-			else if (child.tagName.toLowerCase() == "desc")
+			} else if (child.tagName.toLowerCase() === 'desc') {
 				desc = child;
+			}
 		}
 	}
+
 	return {
 		name: getCleanSimpleTextContent(name),
 		link: getCleanSimpleTextContent(link),
@@ -568,39 +613,51 @@ function parseDocEntry(declElem: Element): DocEntry {
 }
 
 function parseDocItem(dt: Element): DocItem | undefined {
-	let a = dt.getElementsByTagName("a")[0];
-	if (!a)
-		return;
-	let href = a.getAttribute("href");
-	if (!href)
-		return;
+	const a = dt.getElementsByTagName('a')[0];
 
-	let score = parseInt(dt.getAttribute("data-score") || "0");
-	let obj: DocItem = {
-		label: (a.textContent || "").replace(/[\s\u2000-\u200F]+/g, ""),
+	if (a == null) {
+		return;
+	}
+
+	const href = a.getAttribute('href');
+
+	if (href == null) {
+		return;
+	}
+
+	const score = parseInt(dt.getAttribute('data-score') ?? '0');
+	const obj: DocItem = {
+		label: (a.textContent ?? '').replace(/[\s\u2000-\u200F]+/g, ''),
 		href: href,
 		score: score
 	};
 
-	if (score > 0)
-		obj.description = "Search Score: " + score;
+	if (score > 0) {
+		obj.description = `Search Score: ${score}`;
+	}
 
 	let next = dt.nextSibling;
+
 	while (next && !(next instanceof Element)) {
 		next = next.nextSibling;
 	}
-	if (next && next instanceof Element)
-		obj.detail = (next.textContent || "").replace(/[\u2000-\u200F]+/g, "").replace(/([^\S\n]*\n[^\S\n]*\n[^\S\n]*)+/g, "\n\n");
+
+	if (next && next instanceof Element) {
+		const regex = /([^\S\n]*\n[^\S\n]*\n[^\S\n]*)+/g;
+		obj.detail = (next.textContent ?? '').replace(/[\u2000-\u200F]+/g, '').replace(regex, '\n\n');
+	}
 
 	return obj;
 }
 
 function getCleanSimpleTextContent(elem: Element | null): string | null {
-	return elem ? ((<any>elem).innerText || elem.textContent || "").replace(/<\/?.*?>/g, "").replace(/[\u2000-\u200F]+/g, "").trim() : elem;
+	return elem != null
+		? ((elem as any).innerText ?? elem.textContent ?? '').replace(/<\/?.*?>/g, '').replace(/[\u2000-\u200F]+/g, '').trim()
+		: elem;
 }
 
 function showDocItemUI(docItem: DocItem) {
-	var panel = window.createWebviewPanel("dpldocs", docItem.label, {
+	const panel = window.createWebviewPanel('dpldocs', docItem.label, {
 		viewColumn: ViewColumn.Active
 	}, {
 		enableCommandUris: false,
@@ -608,11 +665,12 @@ function showDocItemUI(docItem: DocItem) {
 		enableScripts: true,
 		localResourceRoots: []
 	});
-	var baseUri = docItem.href;
+
+	let baseUri = docItem.href;
 
 	panel.webview.onDidReceiveMessage((msg) => {
 		switch (msg.type) {
-			case "handle-link":
+			case 'handle-link':
 				if (/^coded-internal:\/\/[^/?#]+\.dpldocs\.info(\/|$)/.test(msg.href)) {
 					// absolute dpldocs link, possibly with different subdomain
 					baseUri = Uri.parse(msg.href).with({ "scheme": "https" }).toString();
@@ -620,13 +678,13 @@ function showDocItemUI(docItem: DocItem) {
 				} else {
 					let href = path.posix.normalize(msg.href);
 					let uri = Uri.parse(baseUri);
-					if (href.startsWith("/")) {
+					if (href.startsWith('/')) {
 						baseUri = uri.with({
 							path: href
 						}).toString();
 					} else {
 						let file = uri.path;
-						let slash = file.lastIndexOf("/");
+						let slash = file.lastIndexOf('/');
 						file = file.substring(0, slash + 1) + href;
 						baseUri = uri.with({
 							path: file
@@ -636,7 +694,7 @@ function showDocItemUI(docItem: DocItem) {
 				}
 				break;
 
-			case "open-module":
+			case 'open-module':
 				let module_ = <string>msg.module_;
 				let line = msg.line;
 				focusModule(module_, line);
@@ -647,12 +705,12 @@ function showDocItemUI(docItem: DocItem) {
 	fillDplDocs(panel, docItem.label, docItem.href);
 }
 
-function focusModule(module_: string, line: number) {
-	extension.served?.findFilesByModule(module_).then(files => {
-		if (!files.length) {
-			window.showErrorMessage("Could not find module " + module_);
-		} else {
-			openTextDocument(Uri.parse(files[0]), line > 0 ? line - 1 : null);
-		}
-	});
+async function focusModule(module_: string, line: number) {
+	const files = await extension.served?.findFilesByModule(module_) ?? [];
+
+	if (!files.length) {
+		window.showErrorMessage(`Could not find module ${module_}`);
+	} else {
+		openTextDocument(Uri.parse(files[0]), line > 0 ? line - 1 : null);
+	}
 }

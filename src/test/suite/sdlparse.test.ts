@@ -1,14 +1,10 @@
-import { deepStrictEqual } from 'assert';
-import { } from 'vscode';
+import { deepStrictEqual } from 'node:assert';
 
 import { parseSDL, tokenizeSDL } from '../../sdl/sdlparse.js';
 
 
-let backslash = "\\";
-
-// Defines a Mocha test suite to group tests of similar kind together
-suite("sdl parser", () => {
-	test("tokenizer", () => {
+suite('sdl parser', () => {
+	test('tokenizer', () => {
 		let tokens = tokenizeSDL(`my_tag
 
 person "Akiko" "Johnson" height=60
@@ -34,11 +30,11 @@ my_namespace:person "Akiko" "Johnson" dimensions:height=68 {
 entry 2005/11/23 10:14:23.253-GMT "Something bad happened" error=true
 
 # a long line
-mylist "something" "another" true "shoe" 2002/12/13 "rock" ${backslash}
+mylist "something" "another" true "shoe" 2002/12/13 "rock" \\
     "morestuff" "sink" "penny" 12:15:23.425
 
 # a long string
-text "this is a long rambling line of text with a continuation ${backslash}
+text "this is a long rambling line of text with a continuation \\
    and it keeps going and going..."
    
 # anonymous tag examples
@@ -61,9 +57,10 @@ matrix {
     4 5 6
 }`);
 		// TODO: make test more automatic instead of relying on tokenizer not changing
-		deepStrictEqual(tokens[0], { type: "identifier", range: [0, 6], name: "my_tag" });
+		deepStrictEqual(tokens[0], { type: 'identifier', range: [0, 6], name: 'my_tag' });
 	});
-	test("example sdl file", () => {
+
+	test('example sdl file', () => {
 		let root = parseSDL(`# a tag having only a name
 420
 my_tag
@@ -106,11 +103,11 @@ my_namespace:person "Akiko" "Johnson" dimensions:height=68 {
 entry 2005/11/23 10:14:23.253-GMT "Something bad happened" error=true
 
 # a long line
-mylist "something" "another" true "shoe" 2002/12/13 "rock" ${backslash}
+mylist "something" "another" true "shoe" 2002/12/13 "rock" \\
     "morestuff" "sink" "penny" 12:15:23.425
 
 # a long string
-text "this is a long rambling line of text with a continuation ${backslash}
+text "this is a long rambling line of text with a continuation \\
    and it keeps going and going..."
    
 # anonymous tag examples

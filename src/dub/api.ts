@@ -8,11 +8,11 @@ import { reqJson } from '../utils/index.js';
 
 export async function searchDubPackages(query: string): Promise<any[]> {
 	try {
-		const body = await dubAPI().get("/api/packages/search?q=" + encodeURIComponent(query));
+		const body = await dubAPI().get(`/api/packages/search?q=${encodeURIComponent(query)}`);
 		return body.data;
 	} catch (e) {
 		if (e instanceof AxiosError && e.response != null) {
-			throw new Error("No packages found");
+			throw new Error('No packages found');
 		} else {
 			throw e;
 		}
@@ -21,11 +21,11 @@ export async function searchDubPackages(query: string): Promise<any[]> {
 
 export async function listPackages(): Promise<any[]> {
 	try {
-		const body = await dubAPI().get("/packages/index.json");
+		const body = await dubAPI().get('/packages/index.json');
 		return body.data;
 	} catch (e) {
 		if (e instanceof AxiosError && e.response != null) {
-			throw new Error("No packages found");
+			throw new Error('No packages found');
 		} else {
 			throw e;
 		}
@@ -41,7 +41,7 @@ export async function listPackageOptions(): Promise<QuickPickItem[]> {
 	}
 
 	try {
-		const body = await dubAPI().get<{ name: string; description: string; version: string; }[]>("/api/packages/search");
+		const body = await dubAPI().get<{ name: string; description: string; version: string; }[]>('/api/packages/search');
 		var ret: QuickPickItem[] = [];
 		body.data.forEach(element => {
 			ret.push({
@@ -55,7 +55,7 @@ export async function listPackageOptions(): Promise<QuickPickItem[]> {
 		return ret;
 	} catch (e) {
 		if (e instanceof AxiosError && e.response != null) {
-			throw new Error("No packages found");
+			throw new Error('No packages found');
 		} else {
 			throw e;
 		}
@@ -64,11 +64,11 @@ export async function listPackageOptions(): Promise<QuickPickItem[]> {
 
 export async function getPackageInfo(pkg: string): Promise<any> {
 	try {
-		const body = await dubAPI().get("/api/packages/" + encodeURIComponent(pkg) + "/info");
+		const body = await dubAPI().get(`/api/packages/${encodeURIComponent(pkg)}/info`);
 		return body.data;
 	} catch (e) {
 		if (e instanceof AxiosError && e.response != null) {
-			throw new Error("No packages found");
+			throw new Error('No packages found');
 		} else {
 			throw e;
 		}
@@ -76,7 +76,7 @@ export async function getPackageInfo(pkg: string): Promise<any> {
 }
 
 export async function getLatestPackageInfo(pkg: string): Promise<{ description?: string; version?: string; subPackages?: string[], readme?: string, readmeMarkdown?: boolean, license?: string, copyright?: string; }> {
-	const body = await dubAPI().get<any>("/api/packages/" + encodeURIComponent(pkg) + "/latest/info");
+	const body = await dubAPI().get<any>(`/api/packages/${encodeURIComponent(pkg)}/latest/info`);
 
 	var json = body.data;
 	var subPackages: string[] = [];
@@ -99,10 +99,10 @@ export async function getLatestPackageInfo(pkg: string): Promise<{ description?:
 }
 
 export async function autoCompletePath(fileName: string, key: string, currentValue: string, addResult: (v: CompletionItem) => any): Promise<any> {
-	let folderOnly = ["path", "targetPath", "sourcePaths", "stringImportPaths", "importPaths"].indexOf(key) != -1;
-	let fileRegex = ["copyFiles"].indexOf(key) != -1 ? null : /\.di?$/i;
+	let folderOnly = ['path', 'targetPath', 'sourcePaths', 'stringImportPaths', 'importPaths'].indexOf(key) != -1;
+	let fileRegex = ['copyFiles'].indexOf(key) != -1 ? null : /\.di?$/i;
 
-	if (currentValue != "") {
+	if (currentValue !== '') {
 		let end = currentValue.lastIndexOf('/');
 		if (end != -1) {
 			currentValue = currentValue.substr(0, end);
@@ -137,13 +137,13 @@ export async function autoCompletePath(fileName: string, key: string, currentVal
 
 		let value = join(currentValue, file.name).replace(/\\/g, '/');
 		if (file.isDirectory() && !folderOnly) {
-			value += "/";
+			value += '/';
 		}
 		value = JSON.stringify(value);
 
 		const item = new CompletionItem(value, kind);
 		if (file.isDirectory()) {
-			item.insertText = new SnippetString(value.slice(0, -1) + "${0}\"");
+			item.insertText = new SnippetString(`${value.slice(0, -1)}\${0}\"`);
 		}
 		addResult(item);
 	}

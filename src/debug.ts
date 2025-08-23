@@ -230,12 +230,12 @@ class DDebugProvider implements DebugConfigurationProvider {
 			}
 
 			if (debugType === 'no-ext') {
-				throw new Error("No debugging extension installed. Please install ms-vscode.cpptools and/or webfreak.debug! To force a debugger, explicitly specify `debugger` in the debug launch config.");
+				throw new Error('No debugging extension installed. Please install ms-vscode.cpptools and/or webfreak.debug! To force a debugger, explicitly specify `debugger` in the debug launch config.');
 			} else if (debugType === 'no-dbg') {
 				if (process.platform === 'win32') {
-					throw new Error("No debugger installed. Please install Visual Studio, GDB, LLDB or mago-mi or force a debugger by specifying `debugger` in the debug launch config!");
+					throw new Error('No debugger installed. Please install Visual Studio, GDB, LLDB or mago-mi or force a debugger by specifying `debugger` in the debug launch config!');
 				} else {
-					throw new Error("No debugger installed. Please install GDB or LLDB or force a debugger by specifying `debugger` in the debug launch config!");
+					throw new Error('No debugger installed. Please install GDB or LLDB or force a debugger by specifying `debugger` in the debug launch config!');
 				}
 			}
 		}
@@ -246,7 +246,7 @@ class DDebugProvider implements DebugConfigurationProvider {
 			} else if (this.hasWebfreakDebug) {
 				debugType = 'nd-gdb';
 			} else {
-				throw new Error("No debugging extension installed. Please install ms-vscode.cpptools and/or webfreak.debug! To force a debugger, explicitly specify `debugger` in the debug launch config.");
+				throw new Error('No debugging extension installed. Please install ms-vscode.cpptools and/or webfreak.debug! To force a debugger, explicitly specify `debugger` in the debug launch config.');
 			}
 		}
 
@@ -258,7 +258,7 @@ class DDebugProvider implements DebugConfigurationProvider {
 			} else if (this.hasWebfreakDebug) {
 				debugType = 'nd-lldb';
 			} else {
-				throw new Error("No debugging extension installed. Please install ms-vscode.cpptools and/or webfreak.debug! To force a debugger, explicitly specify `debugger` in the debug launch config.");
+				throw new Error('No debugging extension installed. Please install ms-vscode.cpptools and/or webfreak.debug! To force a debugger, explicitly specify `debugger` in the debug launch config.');
 			}
 		}
 
@@ -370,13 +370,13 @@ class DDebugProvider implements DebugConfigurationProvider {
 		}
 
 		if (!hasCDebugInfo && config.type === 'cppvsdbg') {
-			const sdlWarnMessage = "C Debug Information (`-gc`) has not been enabled. This is however recommended for use with the C++ VSDBG debugger.\n\nPlease add `buildOptions \"debugInfoC\" platform=\"windows\"` to your dub.sdl (globally or best placed inside the debug configuration or a special configuration) and retry debugging or disable dub building.";
-			const jsonWarnMessage = "C Debug Information (`-gc`) has not been enabled. This is however recommended for use with the C++ VSDBG debugger.\n\nPlease add `\"buildOptions-windows\": [\"debugInfoC\"]` to your dub.json (globally or best placed inside the debug configuration or a special configuration) and retry debugging or disable dub building.";
+			const sdlWarnMessage = 'C Debug Information (`-gc`) has not been enabled. This is however recommended for use with the C++ VSDBG debugger.\n\nPlease add `buildOptions \"debugInfoC\" platform=\"windows\"` to your dub.sdl (globally or best placed inside the debug configuration or a special configuration) and retry debugging or disable dub building.';
+			const jsonWarnMessage = 'C Debug Information (`-gc`) has not been enabled. This is however recommended for use with the C++ VSDBG debugger.\n\nPlease add `\"buildOptions-windows\": [\"debugInfoC\"]` to your dub.json (globally or best placed inside the debug configuration or a special configuration) and retry debugging or disable dub building.';
 			if (!await warnBuildSettings(isSDL ? sdlWarnMessage : jsonWarnMessage)) {
 				return undefined;
 			}
 		} else if (hasCDebugInfo && (config.type === 'cppdbg' || config.type === 'gdb' || config.type === 'lldb' || config.type === 'lldb-mi')) {
-			const warnMessage = "C Debug Information (`-gc`) has been enabled. For the best experience with GDB/LLDB debuggers it is recommended to omit this option.\n\nTo fix this, remove or restrict the affecting `buildOptions` (debugInfoC) or `dflags` to e.g. Windows only, create a new build configuration or disable dub building.";
+			const warnMessage = 'C Debug Information (`-gc`) has been enabled. For the best experience with GDB/LLDB debuggers it is recommended to omit this option.\n\nTo fix this, remove or restrict the affecting `buildOptions` (debugInfoC) or `dflags` to e.g. Windows only, create a new build configuration or disable dub building.';
 			if (!await warnBuildSettings(warnMessage)) {
 				return undefined;
 			}
@@ -385,18 +385,18 @@ class DDebugProvider implements DebugConfigurationProvider {
 		let exitCode = await new Promise<number>(async (done) => {
 			let task: Task = await this.served?.tasksProvider?.resolveTask({
 				definition: {
-					type: "dub",
+					type: 'dub',
 					run: false,
-					compiler: "$current",
-					archType: "$current",
-					buildType: "$current",
-					configuration: "$current",
-					name: "debug dub build",
-					_id: "coded-debug-id-" + Math.random().toString(36)
+					compiler: '$current',
+					archType: '$current',
+					buildType: '$current',
+					configuration: '$current',
+					name: 'debug dub build',
+					_id: `coded-debug-id-${Math.random().toString(36)}`
 				},
 				isBackground: false,
-				name: "debug dub build",
-				source: "dlang debug",
+				name: 'debug dub build',
+				source: 'dlang debug',
 				runOptions: {
 					reevaluateOnRerun: false
 				},
@@ -407,7 +407,7 @@ class DDebugProvider implements DebugConfigurationProvider {
 					reveal: TaskRevealKind.Silent,
 					showReuseMessage: false
 				},
-				problemMatchers: ["$dmd"],
+				problemMatchers: ['$dmd'],
 				group: TaskGroup.Build,
 				scope: undefined
 			}, undefined)!;
@@ -441,7 +441,7 @@ class DDebugProvider implements DebugConfigurationProvider {
 		});
 
 		if (exitCode === -1) {
-			window.showErrorMessage("Could not start dub build task before debugging!");
+			window.showErrorMessage('Could not start dub build task before debugging!');
 			return null;
 		} else if (exitCode !== 0) {
 			window.showErrorMessage(`dub build exited with error code ${exitCode}`);

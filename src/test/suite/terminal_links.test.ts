@@ -3,22 +3,22 @@ import { deepStrictEqual } from 'node:assert';
 import { Uri } from 'vscode';
 
 import { getDubPackagesHome } from '../../dub/home.js';
-import { findDErrorLines, enableResolveAllFilePathsForTest, TerminalFileLink } from '../../DTerminalLinkProvider.js';
+import { findDErrorLines, enableResolveAllFilePathsForTest } from '../../DTerminalLinkProvider.js';
 
 
-suite("terminal links", () => {
+suite('terminal links', () => {
 	enableResolveAllFilePathsForTest();
 
-	test("DUB path rewriting", async () => {
+	test('DUB path rewriting', async () => {
 		deepStrictEqual(await findDErrorLines(
-			"../../elsewhere/.dub/packages/msgpack-d-1.0.1/msgpack-d/src/msgpack/common.d(532,9): Deprecation: usage of the `body` keyword is deprecated. Use `do` instead.",
-			"/tmp/myproject"
-		), <TerminalFileLink[]>[
+			'../../elsewhere/.dub/packages/msgpack-d-1.0.1/msgpack-d/src/msgpack/common.d(532,9): Deprecation: usage of the `body` keyword is deprecated. Use `do` instead.',
+			'/tmp/myproject'
+		), [
 			{
 				startIndex: 0,
 				length: 83,
 				file: {
-					path: Uri.file(join(getDubPackagesHome(), "msgpack-d-1.0.1/msgpack-d/src/msgpack/common.d")),
+					path: Uri.file(join(getDubPackagesHome(), 'msgpack-d-1.0.1/msgpack-d/src/msgpack/common.d')),
 					line: 532,
 					column: 9
 				}
@@ -26,16 +26,16 @@ suite("terminal links", () => {
 		]);
 	});
 
-	test("DMD error reporting", async () => {
+	test('DMD error reporting', async () => {
 		deepStrictEqual(await findDErrorLines(
-			"source/app.d(5,15): Error: unable to read module `bm`",
-			"/tmp/myproject"
-		), <TerminalFileLink[]>[
+			'source/app.d(5,15): Error: unable to read module `bm`',
+			'/tmp/myproject'
+		), [
 			{
 				startIndex: 0,
 				length: 18,
 				file: {
-					path: Uri.file("/tmp/myproject/source/app.d"),
+					path: Uri.file('/tmp/myproject/source/app.d'),
 					line: 5,
 					column: 15
 				}
@@ -43,16 +43,16 @@ suite("terminal links", () => {
 		]);
 	});
 
-	test("D exceptions", async () => {
+	test('D exceptions', async () => {
 		deepStrictEqual(await findDErrorLines(
-			"core.exception.AssertError@source/app.d(6): Assertion failure",
-			"/tmp/myproject"
-		), <TerminalFileLink[]>[
+			'core.exception.AssertError@source/app.d(6): Assertion failure',
+			'/tmp/myproject'
+		), [
 			{
 				startIndex: 27,
 				length: 15,
 				file: {
-					path: Uri.file("/tmp/myproject/source/app.d"),
+					path: Uri.file('/tmp/myproject/source/app.d'),
 					line: 6,
 					column: undefined
 				}
@@ -60,16 +60,16 @@ suite("terminal links", () => {
 		]);
 	});
 
-	test("mixin errors", async () => {
+	test('mixin errors', async () => {
 		deepStrictEqual(await findDErrorLines(
-			"source/app.d-mixin-5(7,8): Error: unable to read module `foobar`",
-			"/tmp/myproject"
-		), <TerminalFileLink[]>[
+			'source/app.d-mixin-5(7,8): Error: unable to read module `foobar`',
+			'/tmp/myproject'
+		), [
 			{
 				startIndex: 0,
 				length: 25,
 				file: {
-					path: Uri.file("/tmp/myproject/source/app.d"),
+					path: Uri.file('/tmp/myproject/source/app.d'),
 					line: 5,
 					column: undefined
 				}

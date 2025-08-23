@@ -17,7 +17,7 @@ export async function getTemplates(): Promise<Template[]> {
 	templates.forEach((template: any) => {
 		result.push({
 			label: template.name,
-			description: "",
+			description: '',
 			detail: template.detail,
 			id: template.path,
 			json: template.dub
@@ -38,10 +38,11 @@ export async function showProjectCreator(): Promise<void> {
 		return undefined;
 	}
 
-	if (workspace.workspaceFolders == null || workspace.workspaceFolders.length == 0) {
-		const result = await window.showInformationMessage("Select an empty folder to create the project in", "Select Folder");
+	if (workspace.workspaceFolders == null || workspace.workspaceFolders.length === 0) {
+		const message = 'Select an empty folder to create the project in';
+		const result = await window.showInformationMessage(message, 'Select Folder');
 
-		if (result == "Select Folder") {
+		if (result === 'Select Folder') {
 			await extension.globals.setCreateTemplate(template.id);
 			await openFolderWithExtension();
 		}
@@ -52,18 +53,23 @@ export async function showProjectCreator(): Promise<void> {
 	const path = workspace.workspaceFolders[0].uri.fsPath;
 	const files = await readdir(path);
 
-	if (files.length == 0) {
+	if (files.length === 0) {
 		return performTemplateCopy(template.id, template.json, path, () => {
-			commands.executeCommand("workbench.action.reloadWindow");
+			commands.executeCommand('workbench.action.reloadWindow');
 		});
 	} else {
-		const r = await window.showWarningMessage("The current workspace is not empty!", "Select other Folder", "Merge into Folder");
-		if (r == "Select other Folder") {
+		const selectOtherFolder = 'Select other Folder';
+		const mergeIntoFolder = 'Merge into Folder';
+
+		const message = 'The current workspace is not empty!';
+		const selected = await window.showWarningMessage(message, selectOtherFolder, mergeIntoFolder);
+
+		if (selected === selectOtherFolder) {
 			await extension.globals.setCreateTemplate(template.id);
 			await openFolderWithExtension();
-		} else if (r == "Merge into Folder") {
+		} else if (selected === mergeIntoFolder) {
 			return performTemplateCopy(template.id, template.json, path, () => {
-				commands.executeCommand("workbench.action.reloadWindow");
+				commands.executeCommand('workbench.action.reloadWindow');
 			});
 		}
 	}
@@ -83,7 +89,8 @@ export async function openFolderWithExtension() {
 
 		commands.executeCommand('vscode.openFolder');
 	} catch (err) {
-		return window.showErrorMessage("Failed to reload. Reload manually and run some dlang command!");
+		const message = 'Failed to reload. Reload manually and run some code-d command!';
+		return window.showErrorMessage(message);
 	}
 }
 
@@ -98,7 +105,8 @@ export async function restoreCreateProjectPackageBackup(): Promise<boolean | und
 			await unlink(`${pkgPath}.bak`);
 			return true;
 		} catch (err) {
-			await window.showErrorMessage("Failed to restore after reload! Please reinstall dlang if problems occur before reporting!");
+			const message = 'Failed to restore after reload! Please reinstall code-d if problems occur before reporting!';
+			await window.showErrorMessage(message);
 			return false;
 		}
 	}

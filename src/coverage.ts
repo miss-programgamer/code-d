@@ -22,10 +22,12 @@ const coveragePattern = /^\s*(\d*)\|(.*)/;
 const totalCoveragePattern = /^(.*?) is (.*?)% covered$/;
 
 function pathToName(root: string, fspath: string) {
-	var file = relative(root, fspath).replace(/[\\/]/g, "-");
-	if (!file.endsWith(".d"))
+	const file = relative(root, fspath).replace(/[\\/]/g, '-');
+	if (!file.endsWith('.d')) {
 		return undefined;
-	return file.substr(0, file.length - 2);
+	} else {
+		return file.substring(0, file.length - 2);
+	}
 }
 
 export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable {
@@ -34,19 +36,21 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 
 	constructor() {
 		this.uncovDecorator = window.createTextEditorDecorationType({
-			backgroundColor: "rgba(255, 128, 16, 0.1)",
+			backgroundColor: 'rgba(255, 128, 16, 0.1)',
 			isWholeLine: true,
-			overviewRulerColor: "rgba(255, 128, 16, 0.15)",
+			overviewRulerColor: 'rgba(255, 128, 16, 0.15)',
 			overviewRulerLane: OverviewRulerLane.Center
 		});
+
 		this.covDecorator = window.createTextEditorDecorationType({
-			backgroundColor: "rgba(32, 255, 16, 0.03)",
+			backgroundColor: 'rgba(32, 255, 16, 0.03)',
 			isWholeLine: true
 		});
+
 		this.coverageStat = window.createStatusBarItem(StatusBarAlignment.Left, 0.72136);
-		this.coverageStat.text = "0.00% Coverage";
-		this.coverageStat.tooltip = "Coverage in this file generated from the according .lst file";
-		this.coverageStat.command = "code-d.generateCoverageReport";
+		this.coverageStat.text = '0.00% Coverage';
+		this.coverageStat.tooltip = 'Coverage in this file generated from the according .lst file';
+		this.coverageStat.command = 'code-d.generateCoverageReport';
 
 		this.gotCoverage = false;
 
@@ -58,52 +62,73 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 		}));
 	}
 
-	updateCache(uri: Uri) {
-		var cache: CoverageLine[] = [];
-		var file = basename(uri.fsPath, ".lst");
-		if (file.indexOf("dub_test_root-") != -1)
-			return; // dub cache file for unittests
-		fs.readFile(uri.fsPath, "utf-8", (err, data) => {
-			var lines = data.split("\n");
-			var offsetAdd = 0;
-			var totalCov = "";
-			var source = "";
-			for (var i = 0; i < lines.length; i++) {
-				var line = lines[i];
-				if (line.trim().length == 0)
-					continue;
-				var match = coveragePattern.exec(line);
-				if (!match) {
-					var totalCovMatch = totalCoveragePattern.exec(line);
-					if (totalCovMatch) {
-						source = totalCovMatch[1].trim();
-						totalCov = totalCovMatch[2].trim();
-					}
-					break;
-				}
-				if (match[1] && match[2].trim()) // only lines with coverage & source
-				{
-					cache.push({
-						hits: parseInt(match[1]),
-						trimmedLine: match[2].trim(),
-						offsetAdd: offsetAdd
-					});
-					offsetAdd = 0;
-				}
-				else
-					offsetAdd++;
+	updateCache(uri: Uri): Promise<void> {
+		return new Promise<void>((resolve, reject) => {
+			var cache: CoverageLine[] = [];
+			var file = basename(uri.fsPath, '.lst');
+
+			if (file.indexOf('dub_test_root-') !== -1) {
+				return; // dub cache file for unittests
 			}
-			console.log("Cache for " + source + " with " + totalCov + "% coverage");
-			if (source && totalCov)
-				this.cache.set(file, { lines: cache, totalCov: totalCov, source: source });
-			var folder = workspace.getWorkspaceFolder(uri);
-			if (folder && window.activeTextEditor && pathToName(folder.uri.fsPath, window.activeTextEditor.document.uri.fsPath) == file)
-				this.populateCurrent();
+
+			fs.readFile(uri.fsPath, 'utf-8', (err, data) => {
+				if (err != null) {
+					reject(err);
+					return;
+				}
+
+				var lines = data.split('\n');
+				var offsetAdd = 0;
+				var totalCov = '';
+				var source = '';
+
+				for (var i = 0; i < lines.length; i++) {
+					var line = lines[i];
+					if (line.trim().length == 0) {
+						continue;
+					}
+
+					var match = coveragePattern.exec(line);
+
+					if (!match) {
+						var totalCovMatch = totalCoveragePattern.exec(line);
+						if (totalCovMatch) {
+							source = totalCovMatch[1].trim();
+							totalCov = totalCovMatch[2].trim();
+						}
+						break;
+					}
+
+					// only lines with coverage & source
+					if (match[1] && match[2].trim()) {
+						cache.push({
+							hits: parseInt(match[1]),
+							trimmedLine: match[2].trim(),
+							offsetAdd: offsetAdd
+						});
+						offsetAdd = 0;
+					} else {
+						++offsetAdd;
+					}
+				}
+
+				if (source && totalCov) {
+					this.cache.set(file, { lines: cache, totalCov: totalCov, source: source });
+				}
+
+				const folder = workspace.getWorkspaceFolder(uri);
+
+				if (folder != null && window.activeTextEditor && pathToName(folder.uri.fsPath, window.activeTextEditor.document.uri.fsPath) === file) {
+					this.populateCurrent();
+				}
+
+				resolve();
+			});
 		});
 	}
 
 	removeCache(uri: Uri) {
-		this.cache.delete(basename(uri.fsPath, ".lst"));
+		this.cache.delete(basename(uri.fsPath, '.lst'));
 	}
 
 	populateCurrent() {
@@ -147,7 +172,7 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 					}
 				}
 			}
-			this.coverageStat.text = (info ? info.totalCov : "unknown") + "% Coverage";
+			this.coverageStat.text = `${info ? info.totalCov : 'unknown'}% Coverage`;
 			this.gotCoverage = true;
 			this.refreshStatusBar();
 		}
@@ -166,7 +191,7 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 	}
 
 	refreshStatusBar(editor?: TextEditor): any {
-		if (this.gotCoverage && checkStatusbarVisibility("alwaysShowCoverageStatus", editor))
+		if (this.gotCoverage && checkStatusbarVisibility('alwaysShowCoverageStatus', editor))
 			this.coverageStat.show();
 		else
 			this.coverageStat.hide();
@@ -174,9 +199,9 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 
 	provideTextDocumentContent(uri: Uri, token: CancellationToken): string {
 		var report = '<!DOCTYPE html>\n<html><head><meta http-equiv="Content-type" content="text/html;charset=UTF-8"><title>Coverage Report</title><style>th{padding:0 12px}</style></head><body>';
-		report += "<table><thead>";
-		report += "<tr><th>Source</th><th>Coverage</th><th>Lines not covered</th><th>Lines covered</th><th>Average hits/line</th></tr>";
-		report += "</thead><tbody>";
+		report += '<table><thead>';
+		report += '<tr><th>Source</th><th>Coverage</th><th>Lines not covered</th><th>Lines covered</th><th>Average hits/line</th></tr>';
+		report += '</thead><tbody>';
 		var totalLinesWithout = 0;
 		var totalLinesWith = 0;
 		var totalSum = 0;
@@ -197,25 +222,26 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 			var sum = 0;
 			for (var i = 0; i < info.lines.length; i++) {
 				var line = info.lines[i];
-				if (line.hits > 0)
+				if (line.hits > 0) {
 					linesWith++;
-				else
+				} else {
 					linesWithout++;
+				}
 				sum += line.hits;
 				totalCount++;
 			}
 			totalLinesWith += linesWith;
 			totalLinesWithout += linesWithout;
 			totalSum += sum;
-			report += "<tr><td><a style='color:inherit' href='" + info.source + "'>" + info.source + "</a></td><td style='text-align:right'>" + info.totalCov + "%</td><td style='text-align:right'>" + linesWithout + "</td><td style='text-align:right'>" + linesWith + "</td><td style='text-align:right'>" + (sum / info.lines.length).toFixed(2) + "</td></tr>";
+			report += `<tr><td><a style='color:inherit' href='${info.source}'>${info.source}</a></td><td style='text-align:right'>${info.totalCov}%</td><td style='text-align:right'>${linesWithout}</td><td style='text-align:right'>${linesWith}</td><td style='text-align:right'>${(sum / info.lines.length).toFixed(2)}</td></tr>`;
 		}
 
-		report += "</tbody></table><hr>";
-		report += "Total lines covered: <b>" + totalLinesWith + "</b><br>";
-		report += "Total lines not covered: <b>" + totalLinesWithout + "</b><br>";
-		report += "Total hits: <b>" + totalSum + "</b><br>";
-		report += "Total coverage: <b>" + ((totalLinesWith / totalCount) * 100).toFixed(1) + "%</b>";
-		report += "</body></html>";
+		report += '</tbody></table><hr>';
+		report += `Total lines covered: <b>${totalLinesWith}</b><br>`;
+		report += `Total lines not covered: <b>${totalLinesWithout}</b><br>`;
+		report += `Total hits: <b>${totalSum}</b><br>`;
+		report += `Total coverage: <b>${((totalLinesWith / totalCount) * 100).toFixed(1)}%</b>`;
+		report += '</body></html>';
 		return report;
 	}
 

@@ -1,33 +1,31 @@
-import { glob } from "glob";
-import Mocha from "mocha";
-import * as path from "path";
+import { resolve } from 'node:path';
 
-export async function run(): Promise<void> {
-	// Create the mocha test
-	const mocha = new Mocha({
-		ui: "tdd",
-		timeout: 120000,
-	});
+import Mocha from 'mocha';
+import { glob } from 'glob';
 
-	const testsRoot = path.resolve(__dirname, "..");
 
-	let files = await glob("**/**.test.js", { cwd: testsRoot });
+const testsRoot = resolve(__dirname, '..');
+
+export async function run(timeout = 120_000): Promise<void> {
+	// Create Mocha instance
+	const mocha = new Mocha({ ui: 'tdd', timeout });
+
+	// Find all test files
+	const files = await glob('**/**.test.ts', { cwd: testsRoot });
 
 	// Add files to the test suite
-	files.forEach((f) => mocha.addFile(path.resolve(testsRoot, f)));
+	for (const file of files) {
+		mocha.addFile(resolve(testsRoot, file));
+	}
 
-	return new Promise((resolve, reject) => {
-		// Run the mocha test
-		try {
-			mocha.run((failures) => {
-				if (failures > 0) {
-					reject(new Error(`${failures} tests failed.`));
-				} else {
-					resolve();
-				}
-			});
-		} catch (e) {
-			reject(e);
-		}
+	// Run our test suite
+	return new Promise<void>((resolve, reject) => {
+		mocha.run((failures) => {
+			if (failures > 0) {
+				reject(new Error(`${failures} tests failed.`));
+			} else {
+				resolve();
+			}
+		});
 	});
 }

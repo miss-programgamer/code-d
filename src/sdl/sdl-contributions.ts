@@ -6,27 +6,27 @@ import { parseSDL, Tag, Value, TagParseError } from './sdlparse.js';
 import { listPackages, getPackageInfo, getLatestPackageInfo, autoCompletePath } from '../dub/api.js';
 import { cmpSemver } from '../utils/index.js';
 
-import extension from "../extension.js";
+import extension from '../extension.js';
 
 
 export function addSDLProviders(): Disposable {
 	let subscriptions: Disposable[] = [];
 	let contribution = new SDLContributions();
-	subscriptions.push(languages.registerCompletionItemProvider([{ language: "sdl", pattern: "**/dub.sdl" }], contribution, '"', '`', '=', '/', '\\'));
-	let diagnosticCollection = languages.createDiagnosticCollection("dub.sdl");
+	subscriptions.push(languages.registerCompletionItemProvider([{ language: 'sdl', pattern: '**/dub.sdl' }], contribution, '"', '`', '=', '/', '\\'));
+	let diagnosticCollection = languages.createDiagnosticCollection('dub.sdl');
 	subscriptions.push(diagnosticCollection);
 	let version;
 	let writeTimeout: NodeJS.Timeout;
 	workspace.onDidChangeTextDocument(event => {
 		let document = event.document;
 
-		if (basename(document.fileName) != "dub.sdl") {
+		if (basename(document.fileName) !== 'dub.sdl') {
 			return;
 		}
 
 		clearTimeout(writeTimeout);
 		writeTimeout = setTimeout(function () {
-			if (workspace.getConfiguration("d").get("enableSDLLinting", true)) {
+			if (workspace.getConfiguration('d').get('enableSDLLinting', true)) {
 				diagnosticCollection.clear();
 				diagnosticCollection.set(document.uri, contribution.provideDiagnostics(document));
 			}
@@ -56,15 +56,15 @@ function completeDubVersion(info: SDLCompletionInfo): SDLCompletionResult {
 			let results: CompletionItem[] = [];
 			for (let i = versions.length - 1; i >= 0; i--) {
 				let item = new CompletionItem(versions[i].version);
-				item.detail = "Released on " + new Date(versions[i].date).toLocaleDateString();
+				item.detail = `Released on ${new Date(versions[i].date).toLocaleDateString()}`;
 				item.kind = CompletionItemKind.Class;
-				item.insertText = new SnippetString().appendPlaceholder("").appendText(versions[i].version);
+				item.insertText = new SnippetString().appendPlaceholder('').appendText(versions[i].version);
 				results.push(item);
 			}
 
 			results.sort((a, b) => cmpSemver(
-				typeof b.label == "string" ? b.label : b.label.label,
-				typeof a.label == "string" ? a.label : a.label.label
+				typeof b.label === 'string' ? b.label : b.label.label,
+				typeof a.label === 'string' ? a.label : a.label.label
 			));
 
 			for (let i = 0; i < results.length; i++) {
@@ -73,7 +73,7 @@ function completeDubVersion(info: SDLCompletionInfo): SDLCompletionResult {
 
 			resolve(results);
 		}, error => {
-			console.log("Error searching for versions");
+			console.log('Error searching for versions');
 			console.log(error);
 			resolve([]);
 		});
@@ -108,81 +108,81 @@ async function completeDubPackageName(info: SDLCompletionInfo): Promise<Completi
 }
 
 const platforms = [
-	"windows",
-	"linux",
-	"posix",
-	"osx",
-	"freebsd",
-	"openbsd",
-	"netbsd",
-	"dragonflybsd",
-	"bsd",
-	"solaris",
-	"aix",
-	"haiku",
-	"skyos",
-	"sysv3",
-	"sysv4",
-	"hurd",
-	"android",
-	"cygwin",
-	"mingw",
-	"wasm",
+	'windows',
+	'linux',
+	'posix',
+	'osx',
+	'freebsd',
+	'openbsd',
+	'netbsd',
+	'dragonflybsd',
+	'bsd',
+	'solaris',
+	'aix',
+	'haiku',
+	'skyos',
+	'sysv3',
+	'sysv4',
+	'hurd',
+	'android',
+	'cygwin',
+	'mingw',
+	'wasm',
 ];
 const platformComplete = platforms.map(platform => {
 	return new CompletionItem(platform, CompletionItemKind.Property);
 });
 
 const architectures = [
-	"x86",
-	"x86_64",
-	"arm",
-	"aarch64",
-	"arm_thumb",
-	"arm_softfloat",
-	"arm_hardfloat",
-	"ppc",
-	"ppc_softfp",
-	"ppc_hardfp",
-	"ppc64",
-	"ia64",
-	"mips",
-	"mips32",
-	"mips64",
-	"mips_o32",
-	"mips_n32",
-	"mips_o64",
-	"mips_n64",
-	"mips_eabi",
-	"mips_nofloat",
-	"mips_softfloat",
-	"mips_hardfloat",
-	"sparc",
-	"sparc_v8plus",
-	"sparc_softfp",
-	"sparc_hardfp",
-	"sparc64",
-	"s390",
-	"s390x",
-	"hppa",
-	"hppa64",
-	"sh",
-	"sh64",
-	"alpha",
-	"alpha_softfp",
-	"alpha_hardfp"
+	'x86',
+	'x86_64',
+	'arm',
+	'aarch64',
+	'arm_thumb',
+	'arm_softfloat',
+	'arm_hardfloat',
+	'ppc',
+	'ppc_softfp',
+	'ppc_hardfp',
+	'ppc64',
+	'ia64',
+	'mips',
+	'mips32',
+	'mips64',
+	'mips_o32',
+	'mips_n32',
+	'mips_o64',
+	'mips_n64',
+	'mips_eabi',
+	'mips_nofloat',
+	'mips_softfloat',
+	'mips_hardfloat',
+	'sparc',
+	'sparc_v8plus',
+	'sparc_softfp',
+	'sparc_hardfp',
+	'sparc64',
+	's390',
+	's390x',
+	'hppa',
+	'hppa64',
+	'sh',
+	'sh64',
+	'alpha',
+	'alpha_softfp',
+	'alpha_hardfp'
 ];
 const architectureComplete = architectures.map(arch => {
 	return new CompletionItem(arch, CompletionItemKind.EnumMember);
 });
 
-const compilers = ["dmd", "gdc", "ldc", "sdc"];
+const compilers = ['dmd', 'gdc', 'ldc', 'sdc'];
 const compilerComplete = compilers.map(compiler => {
 	return new CompletionItem(compiler, CompletionItemKind.Method);
 });
 
 const pathComplete: CompletionValues = {
-	type: "string",
+	type: 'string',
 	pattern: {
 		complete: async (info: SDLCompletionInfo) => {
 			let res: CompletionItem[] = [];
@@ -206,16 +206,19 @@ function platformPatternCompleter(info: SDLCompletionInfo): SDLCompletionResult 
 
 	if (parts.length > 0) {
 		// insert os into architecture or architecture-compiler
-		if (architectures.indexOf(parts[0]) != -1)
-			parts.unshift("");
+		if (architectures.indexOf(parts[0]) !== -1) {
+			parts.unshift('');
+		}
 
 		// insert os-architecture into compiler
-		if (compilers.indexOf(parts[0]) != -1)
-			parts.unshift("", "");
+		if (compilers.indexOf(parts[0]) !== -1) {
+			parts.unshift('', '');
+		}
 
 		// insert architecture into os-compiler
-		if (compilers.indexOf(parts[1]) != -1)
+		if (compilers.indexOf(parts[1]) !== -1) {
 			parts.splice(1, 0, "");
+		}
 	}
 
 	let result: CompletionItem[] = [];
@@ -231,6 +234,7 @@ function platformPatternCompleter(info: SDLCompletionInfo): SDLCompletionResult 
 	} else {
 		result = [];
 	}
+
 	return result;
 }
 
@@ -239,9 +243,9 @@ const platformPattern: CompletionPattern = {
 };
 
 const platformAttribute: CompletionAttribute = {
-	description: "Platform specifier to limit this tag or block to a given host platform. Platform attributes contain dash separated list of operating system/architecture/compiler identifiers, as defined in the D language reference, but converted to lower case. The order of these suffixes is os-architecture-compiler, where any of these parts can be left off.",
+	description: 'Platform specifier to limit this tag or block to a given host platform. Platform attributes contain dash separated list of operating system/architecture/compiler identifiers, as defined in the D language reference, but converted to lower case. The order of these suffixes is os-architecture-compiler, where any of these parts can be left off.',
 	values: {
-		type: "string",
+		type: 'string',
 		pattern: platformPattern
 	}
 };
@@ -251,30 +255,30 @@ const platformAttributes: CompletionAttributeMap = {
 };
 
 const licenses = [
-	"public domain",
-	"proprietary",
-	"AFL-3.0",
-	"AGPL-3.0",
-	"Apache-2.0",
-	"APSL-2.0",
-	"Artistic-2.0",
-	"BSL-1.0",
-	"BSD 2-clause",
-	"BSD 3-clause",
-	"EPL-1.0",
-	"GPL-2.0",
-	"GPL-3.0",
-	"ISC",
-	"LGPL-2.1",
-	"LGPL-3.0",
-	"MIT",
-	"MPL-2.0",
-	"MS-PL",
-	"MS-RL",
-	"NCSA",
-	"OpenSSL",
-	"SSLeay",
-	"Zlib"
+	'public domain',
+	'proprietary',
+	'AFL-3.0',
+	'AGPL-3.0',
+	'Apache-2.0',
+	'APSL-2.0',
+	'Artistic-2.0',
+	'BSL-1.0',
+	'BSD 2-clause',
+	'BSD 3-clause',
+	'EPL-1.0',
+	'GPL-2.0',
+	'GPL-3.0',
+	'ISC',
+	'LGPL-2.1',
+	'LGPL-3.0',
+	'MIT',
+	'MPL-2.0',
+	'MS-PL',
+	'MS-RL',
+	'NCSA',
+	'OpenSSL',
+	'SSLeay',
+	'Zlib'
 ];
 
 interface CompletionTag {
@@ -291,7 +295,7 @@ interface CompletionTag {
 }
 
 interface CompletionValues {
-	type: "string" | "boolean" | "value" | "block";
+	type: 'string' | 'boolean' | 'value' | 'block';
 	pattern?: CompletionPattern | RegExp;
 	enum?: string[];
 	enumOptional?: boolean;
@@ -320,7 +324,7 @@ type SDLValidateExecCallback = (value: Value) => boolean;
 const packageName: CompletionTag = {
 	description: 'Name of the package, used to uniquely identify the package. Must be comprised of only lower case ASCII alpha-numeric characters, "-" or "_".',
 	values: {
-		type: "string",
+		type: 'string',
 		pattern: /^[-a-z0-9_]+$/
 	},
 	minValues: 1,
@@ -328,43 +332,43 @@ const packageName: CompletionTag = {
 };
 const buildSettings: CompletionTagMap = {
 	dependency: {
-		description: "Adds a single dependency of the given name, attributes are used to configure the version/path to use - see next section for how version specifications look like. Use multiple dependency directives to add more than one dependency.",
+		description: 'Adds a single dependency of the given name, attributes are used to configure the version/path to use - see next section for how version specifications look like. Use multiple dependency directives to add more than one dependency.',
 		values: {
-			type: "string",
+			type: 'string',
 			pattern: {
 				complete: completeDubPackageName
 			}
 		},
 		attributes: {
 			version: {
-				description: "The version specification as used for the simple form or the commit hash of the git repository specified in \"repository\"",
+				description: 'The version specification as used for the simple form or the commit hash of the git repository specified in \"repository\"',
 				values: {
-					type: "string",
+					type: 'string',
 					pattern: {
 						complete: completeDubVersion
 					}
 				}
 			},
 			path: {
-				description: "Use a folder to source a package from",
+				description: 'Use a folder to source a package from',
 				values: pathComplete
 			},
 			repository: {
-				description: "Path to a git repository with a leading `git+` prefix like `git+https://github.com/dlang-community/gitcompatibledubpackage.git`",
+				description: 'Path to a git repository with a leading `git+` prefix like `git+https://github.com/dlang-community/gitcompatibledubpackage.git`',
 				values: {
-					type: "string"
+					type: 'string'
 				}
 			},
 			optional: {
-				description: "Indicates an optional dependency",
+				description: 'Indicates an optional dependency',
 				values: {
-					type: "boolean"
+					type: 'boolean'
 				}
 			},
 			default: {
-				description: "Choose an optional dependency by default",
+				description: 'Choose an optional dependency by default',
 				values: {
-					type: "boolean"
+					type: 'boolean'
 				}
 			}
 		},
@@ -372,56 +376,56 @@ const buildSettings: CompletionTagMap = {
 		maxValues: 1
 	},
 	systemDependencies: {
-		description: "A textual description of the required system dependencies (external C libraries) required by the package. This will be visible on the registry and will be displayed in case of linker errors.",
+		description: 'A textual description of the required system dependencies (external C libraries) required by the package. This will be visible on the registry and will be displayed in case of linker errors.',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		minValues: 1,
 		maxValues: 1
 	},
 	targetType: {
-		description: "Specifies a specific target type - this setting does not support the platform attribute",
+		description: 'Specifies a specific target type - this setting does not support the platform attribute',
 		values: {
-			type: "string",
+			type: 'string',
 			enum: [
-				"autodetect",
-				"none",
-				"executable",
-				"library",
-				"sourceLibrary",
-				"staticLibrary",
-				"dynamicLibrary"
+				'autodetect',
+				'none',
+				'executable',
+				'library',
+				'sourceLibrary',
+				'staticLibrary',
+				'dynamicLibrary'
 			]
 		},
 		minValues: 1,
 		maxValues: 1
 	},
 	targetName: {
-		description: "Sets the base name of the output file; type and platform specific pre- and suffixes are added automatically - this setting does not support the platform attribute",
+		description: 'Sets the base name of the output file; type and platform specific pre- and suffixes are added automatically - this setting does not support the platform attribute',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		minValues: 1,
 		maxValues: 1
 	},
 	targetPath: {
-		description: "The destination path of the output binary - this setting does not support the platform attribute",
+		description: 'The destination path of the output binary - this setting does not support the platform attribute',
 		values: pathComplete,
 		minValues: 1,
 		maxValues: 1
 	},
 	workingDirectory: {
-		description: "A fixed working directory from which the generated executable will be run - this setting does not support the platform attribute",
+		description: 'A fixed working directory from which the generated executable will be run - this setting does not support the platform attribute',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		minValues: 1,
 		maxValues: 1
 	},
 	subConfiguration: {
-		description: "Locks a dependency (first argument) to a specific configuration (second argument); see also the configurations section - this setting does not support the platform attribute",
+		description: 'Locks a dependency (first argument) to a specific configuration (second argument); see also the configurations section - this setting does not support the platform attribute',
 		values: {
-			type: "string",
+			type: 'string',
 			pattern: {
 				complete: async (info: SDLCompletionInfo): Promise<CompletionItem[]> => {
 					if (info.valueIndex == 0) {
@@ -447,53 +451,53 @@ const buildSettings: CompletionTagMap = {
 		maxValues: 2
 	},
 	buildRequirements: {
-		description: "List of required settings for the build process. See the build requirements section for details.",
+		description: 'List of required settings for the build process. See the build requirements section for details.',
 		values: {
-			type: "string",
+			type: 'string',
 			enum: [
-				"allowWarnings",
-				"silenceWarnings",
-				"disallowDeprecations",
-				"silenceDeprecations",
-				"disallowInlining",
-				"disallowOptimization",
-				"requireBoundsCheck",
-				"requireContracts",
-				"relaxProperties",
-				"noDefaultFlags"
+				'allowWarnings',
+				'silenceWarnings',
+				'disallowDeprecations',
+				'silenceDeprecations',
+				'disallowInlining',
+				'disallowOptimization',
+				'requireBoundsCheck',
+				'requireContracts',
+				'relaxProperties',
+				'noDefaultFlags'
 			]
 		},
 		attributes: platformAttributes,
 		minValues: 1
 	},
 	buildOptions: {
-		description: "List of build option identifiers (corresponding to compiler flags) - see the build options section for details.",
+		description: 'List of build option identifiers (corresponding to compiler flags) - see the build options section for details.',
 		values: {
-			type: "string",
+			type: 'string',
 			enum: [
-				"debugMode",
-				"releaseMode",
-				"coverage",
-				"debugInfo",
-				"debugInfoC",
-				"alwaysStackFrame",
-				"stackStomping",
-				"inline",
-				"noBoundsCheck",
-				"optimize",
-				"profile",
-				"profileGC",
-				"unittests",
-				"verbose",
-				"ignoreUnknownPragmas",
-				"syntaxOnly",
-				"warnings",
-				"warningsAsErrors",
-				"ignoreDeprecations",
-				"deprecationWarnings",
-				"deprecationErrors",
-				"property",
-				"betterC"
+				'debugMode',
+				'releaseMode',
+				'coverage',
+				'debugInfo',
+				'debugInfoC',
+				'alwaysStackFrame',
+				'stackStomping',
+				'inline',
+				'noBoundsCheck',
+				'optimize',
+				'profile',
+				'profileGC',
+				'unittests',
+				'verbose',
+				'ignoreUnknownPragmas',
+				'syntaxOnly',
+				'warnings',
+				'warningsAsErrors',
+				'ignoreDeprecations',
+				'deprecationWarnings',
+				'deprecationErrors',
+				'property',
+				'betterC'
 			]
 		},
 		attributes: platformAttributes,
@@ -502,14 +506,14 @@ const buildSettings: CompletionTagMap = {
 	libs: {
 		description: 'A list of external library names - depending on the compiler, these will be converted to the proper linker flag (e.g. "ssl" might get translated to "-L-lssl")',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 0,
 		suggestShouldHaveValues: true
 	},
 	sourceFiles: {
-		description: "Additional files passed to the compiler - can be useful to add certain configuration dependent source files that are not contained in the general source folder",
+		description: 'Additional files passed to the compiler - can be useful to add certain configuration dependent source files that are not contained in the general source folder',
 		values: pathComplete,
 		attributes: platformAttributes,
 		minValues: 0,
@@ -543,184 +547,184 @@ const buildSettings: CompletionTagMap = {
 		suggestShouldHaveValues: true
 	},
 	versions: {
-		description: "A list of D versions to be defined during compilation",
+		description: 'A list of D versions to be defined during compilation',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 0,
 		suggestShouldHaveValues: true
 	},
 	debugVersions: {
-		description: "A list of D debug identifiers to be defined during compilation",
+		description: 'A list of D debug identifiers to be defined during compilation',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 0,
 		suggestShouldHaveValues: true
 	},
 	importPaths: {
-		description: "Additional import paths to search for D modules (the source/ folder is used by default as a source folder, if it exists)",
+		description: 'Additional import paths to search for D modules (the source/ folder is used by default as a source folder, if it exists)',
 		values: pathComplete,
 		attributes: platformAttributes,
 		minValues: 0
 		// default: source, so empty is valid and not a warning
 	},
 	stringImportPaths: {
-		description: "Additional import paths to search for string imports/views (the views/ folder is used by default as a string import folder, if it exists)",
+		description: 'Additional import paths to search for string imports/views (the views/ folder is used by default as a string import folder, if it exists)',
 		values: pathComplete,
 		attributes: platformAttributes,
 		minValues: 0
 		// default: views, so empty is valid and not a warning
 	},
 	preGenerateCommands: {
-		description: "A list of shell commands that is executed before project generation is started",
+		description: 'A list of shell commands that is executed before project generation is started',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 0,
 		suggestShouldHaveValues: true
 	},
 	postGenerateCommands: {
-		description: "A list of shell commands that is executed after project generation is finished",
+		description: 'A list of shell commands that is executed after project generation is finished',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 0,
 		suggestShouldHaveValues: true
 	},
 	preBuildCommands: {
-		description: "A list of shell commands that is executed always before the project is built",
+		description: 'A list of shell commands that is executed always before the project is built',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 0,
 		suggestShouldHaveValues: true
 	},
 	postBuildCommands: {
-		description: "A list of shell commands that is executed always after the project is built",
+		description: 'A list of shell commands that is executed always after the project is built',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 0,
 		suggestShouldHaveValues: true
 	},
 	preRunCommands: {
-		description: "A list of shell commands that is executed always before the project is built",
+		description: 'A list of shell commands that is executed always before the project is built',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 0,
 		suggestShouldHaveValues: true
 	},
 	postRunCommands: {
-		description: "A list of shell commands that is executed always after the project is built",
+		description: 'A list of shell commands that is executed always after the project is built',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 0,
 		suggestShouldHaveValues: true
 	},
 	environments: {
-		description: "Environment variables to pass to every invoked build tool, program or script. (lowest precedence)\n\n```\nenvironments \"key\" \"value\"\n```",
+		description: 'Environment variables to pass to every invoked build tool, program or script. (lowest precedence)\n\n```\nenvironments "key" "value"\n```',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 2,
 		maxValues: 2
 	},
 	buildEnvironments: {
-		description: "Environment variables to pass to every invoked build tool, preBuildCommands and postBuildCommands.\n\n```\nbuildEnvironments \"key\" \"value\"\n```",
+		description: 'Environment variables to pass to every invoked build tool, preBuildCommands and postBuildCommands.\n\n```\nbuildEnvironments "key" "value"\n```',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 2,
 		maxValues: 2
 	},
 	runEnvironments: {
-		description: "Environment variables to pass to the run application, preRunCommands and postRunCommands.\n\n```\nrunEnvironments \"key\" \"value\"\n```",
+		description: 'Environment variables to pass to the run application, preRunCommands and postRunCommands.\n\n```\nrunEnvironments "key" "value"\n```',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 2,
 		maxValues: 2
 	},
 	preGenerateEnvironments: {
-		description: "Environment variables to pass to preGenerateCommands.\n\n```\npreGenerateEnvironments \"key\" \"value\"\n```",
+		description: 'Environment variables to pass to preGenerateCommands.\n\n```\npreGenerateEnvironments "key" "value"\n```',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 2,
 		maxValues: 2
 	},
 	postGenerateEnvironments: {
-		description: "Environment variables to pass to postGenerateCommands.\n\n```\npostGenerateEnvironments \"key\" \"value\"\n```",
+		description: 'Environment variables to pass to postGenerateCommands.\n\n```\npostGenerateEnvironments "key" "value"\n```',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 2,
 		maxValues: 2
 	},
 	preBuildEnvironments: {
-		description: "Environment variables to pass to preBuildCommands.\n\n```\npreBuildEnvironments \"key\" \"value\"\n```",
+		description: 'Environment variables to pass to preBuildCommands.\n\n```\npreBuildEnvironments "key" "value"\n```',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 2,
 		maxValues: 2
 	},
 	postBuildEnvironments: {
-		description: "Environment variables to pass to postBuildCommands.\n\n```\npostBuildEnvironments \"key\" \"value\"\n```",
+		description: 'Environment variables to pass to postBuildCommands.\n\n```\npostBuildEnvironments "key" "value"\n```',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 2,
 		maxValues: 2
 	},
 	preRunEnvironments: {
-		description: "Environment variables to pass to preRunCommands.\n\n```\npreRunEnvironments \"key\" \"value\"\n```",
+		description: 'Environment variables to pass to preRunCommands.\n\n```\npreRunEnvironments "key" "value"\n```',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 2,
 		maxValues: 2
 	},
 	postRunEnvironments: {
-		description: "Environment variables to pass to postRunCommands.\n\n```\npostRunEnvironments \"key\" \"value\"\n```",
+		description: 'Environment variables to pass to postRunCommands.\n\n```\npostRunEnvironments "key" "value"\n```',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 2,
 		maxValues: 2
 	},
 	dflags: {
-		description: "Additional flags passed to the D compiler - note that these flags are usually specific to the compiler in use, but a set of flags is automatically translated from DMD to the selected compiler",
+		description: 'Additional flags passed to the D compiler - note that these flags are usually specific to the compiler in use, but a set of flags is automatically translated from DMD to the selected compiler',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 1
 	},
 	lflags: {
-		description: "Additional flags passed to the linker - note that these flags are usually specific to the linker in use",
+		description: 'Additional flags passed to the linker - note that these flags are usually specific to the linker in use',
 		values: {
-			type: "string"
+			type: 'string'
 		},
 		attributes: platformAttributes,
 		minValues: 1
@@ -753,63 +757,63 @@ function removeField(fieldName: keyof CompletionTag): (t: CompletionTag) => Comp
 }
 
 let dubSchema = {
-	title: "dub Package Schema",
-	description: "dub package file",
+	title: 'dub Package Schema',
+	description: 'dub package file',
 	tags: merge(buildSettings, {
 		name: packageName,
 		description: {
-			description: "Brief description of the package",
+			description: 'Brief description of the package',
 			values: {
-				type: "string"
+				type: 'string'
 			},
 			minValues: 1,
 			maxValues: 1
 		},
 		toolchainRequirements: {
-			description: "Set of version requirements for DUB, for compilers and for language frontend.",
+			description: 'Set of version requirements for DUB, for compilers and for language frontend.',
 			attributes: {
 				dub: {
-					description: "DUB version requirement",
+					description: 'DUB version requirement',
 					values: {
-						type: "string"
+						type: 'string'
 					}
 				},
 				frontend: {
-					description: "D frontend version requirement",
+					description: 'D frontend version requirement',
 					values: {
-						type: "string"
+						type: 'string'
 					}
 				},
 				dmd: {
-					description: "DMD version requirement",
+					description: 'DMD version requirement',
 					values: {
-						type: "string",
-						enum: ["no"],
+						type: 'string',
+						enum: ['no'],
 						enumOptional: true
 					}
 				},
 				ldc: {
-					description: "LDC version requirement",
+					description: 'LDC version requirement',
 					values: {
-						type: "string",
-						enum: ["no"],
+						type: 'string',
+						enum: ['no'],
 						enumOptional: true
 					}
 				},
 				gdc: {
-					description: "GDC version requirement",
+					description: 'GDC version requirement',
 					values: {
-						type: "string",
-						enum: ["no"],
+						type: 'string',
+						enum: ['no'],
 						enumOptional: true
 					}
 				}
 			}
 		},
 		homepage: {
-			description: "URL of the project website",
+			description: 'URL of the project website',
 			values: {
-				type: "string"
+				type: 'string'
 			},
 			minValues: 1,
 			maxValues: 1
@@ -817,38 +821,42 @@ let dubSchema = {
 		authors: {
 			description: 'List of project authors (the suggested format is either "Peter Parker" or "Peter Parker <pparker@example.com>")',
 			values: {
-				type: "string"
+				type: 'string'
 			},
 			minValues: 1
 		},
 		copyright: {
-			description: "Copyright declaration string",
+			description: 'Copyright declaration string',
 			values: {
-				type: "string"
+				type: 'string'
 			},
 			minValues: 1,
 			maxValues: 1
 		},
 		license: {
-			description: "License(s) under which the project can be used",
+			description: 'License(s) under which the project can be used',
 			values: {
-				type: "string",
+				type: 'string',
 				pattern: {
-					validate: function (value) {
-						if (value.value.trim().length == 0)
-							return "This value must be set";
-						return undefined;
+					validate(value) {
+						if (value.value.trim().length == 0) {
+							return 'This value must be set';
+						} else {
+							return undefined;
+						}
 					},
-					complete: function (info) {
-						var words = info.partial.trim().split(" ");
-						if (words.length == 0)
+					complete(info) {
+						var words = info.partial.trim().split(' ');
+
+						if (words.length == 0) {
 							return licenses;
-						if (info.partial[info.partial.length - 1] != " ")
+						} else if (info.partial[info.partial.length - 1] !== ' ') {
 							return licenses;
-						if (words[words.length - 1] == "or")
-							return ["later", ...licenses];
-						else
-							return ["or"];
+						} else if (words[words.length - 1] === 'or') {
+							return ['later', ...licenses];
+						} else {
+							return ['or'];
+						}
 					}
 				}
 			},
@@ -856,22 +864,22 @@ let dubSchema = {
 			maxValues: 1
 		},
 		subPackage: {
-			description: "Defines a sub-package using either a path to a sub directory, or in-place",
+			description: 'Defines a sub-package using either a path to a sub directory, or in-place',
 			values: {
-				type: "string"
+				type: 'string'
 			},
 			tags: null
 		},
 		configuration: {
-			description: "Speficies a build configuration (chosen on the command line using --config=...)",
+			description: 'Speficies a build configuration (chosen on the command line using --config=...)',
 			values: {
-				type: "string"
+				type: 'string'
 			},
-			tags: merge(map(buildSettings, removeField("suggestShouldHaveValues")), {
+			tags: merge(map(buildSettings, removeField('suggestShouldHaveValues')), {
 				platforms: {
-					description: "A list of platform specifiers to limit on which platforms the configuration applies",
+					description: 'A list of platform specifiers to limit on which platforms the configuration applies',
 					values: {
-						type: "string"
+						type: 'string'
 					}
 				}
 			}),
@@ -880,11 +888,11 @@ let dubSchema = {
 			requireTags: true
 		},
 		buildType: {
-			description: "Defines an additional custom build type or overrides one of the default ones (chosen on the command line using --build=...)",
+			description: 'Defines an additional custom build type or overrides one of the default ones (chosen on the command line using --build=...)',
 			values: {
-				type: "string"
+				type: 'string'
 			},
-			tags: merge(map(buildSettings, removeField("suggestShouldHaveValues")), {
+			tags: merge(map(buildSettings, removeField('suggestShouldHaveValues')), {
 				dependency: undefined,
 				targetType: undefined,
 				targetName: undefined,
@@ -897,34 +905,35 @@ let dubSchema = {
 			requireTags: true
 		},
 		ddoxFilterArgs: {
-			description: "Specifies a list of command line flags usable for controlling filter behavior for --build=ddox [experimental]",
+			description: 'Specifies a list of command line flags usable for controlling filter behavior for --build=ddox [experimental]',
 			values: {
-				type: "string"
+				type: 'string'
 			},
-			namespace: "x",
+			namespace: 'x',
 			minValues: 1
 		}
 	}),
-	namespaces: ["x"],
-	required: ["name"]
+	namespaces: ['x'],
+	required: ['name']
 };
+
 dubSchema.tags.subPackage.tags = dubSchema.tags;
 
 export class SDLContributions implements CompletionItemProvider {
 	async provideCompletionItems(document: TextDocument, position: Position, token: CancellationToken): Promise<CompletionItem[]> {
-		console.log("Completion:");
+		console.log('Completion:');
 		try {
 			var info = getLocationInfo(document, position);
 			console.log(info);
 
-			if (info.namespace[0] != "") {
-				return <any>Promise.reject("Invalid namespace in info object");
-			} else if (info.name[0] != "") {
-				return <any>Promise.reject("Invalid name in info object");
-			} else if (info.namespace.length != info.name.length) {
-				return <any>Promise.reject("Invalid info object (length mismatch)");
+			if (info.namespace[0] !== '') {
+				return <any>Promise.reject('Invalid namespace in info object');
+			} else if (info.name[0] !== '') {
+				return <any>Promise.reject('Invalid name in info object');
+			} else if (info.namespace.length !== info.name.length) {
+				return <any>Promise.reject('Invalid info object (length mismatch)');
 			} else if (info.namespace.length <= 0) {
-				return <any>Promise.reject("Invalid info object (no entry)");
+				return <any>Promise.reject('Invalid info object (no entry)');
 			}
 
 			let obj: CompletionTag = dubSchema;
@@ -934,32 +943,35 @@ export class SDLContributions implements CompletionItemProvider {
 				found = false;
 				let name = info.name[i];
 				let namespace = info.namespace[i];
-				if (obj.tags![name] && (obj.tags![name].namespace || "") == namespace) {
+				if (obj.tags![name] && (obj.tags![name].namespace ?? '') === namespace) {
 					obj = obj.tags![name];
 					found = true;
 					continue;
 				}
 			}
+
 			if (!found) {
-				console.log("None found");
+				console.log('None found');
 				return Promise.resolve([]);
 			}
+
 			let completions: CompletionItem[] = [];
-			if (info.type == "block") {
-				if (obj.tags)
+			if (info.type === 'block') {
+				if (obj.tags) {
 					Object.keys(obj.tags).forEach(key => {
 						let item = new CompletionItem(key);
 						item.documentation = new MarkdownString(obj.tags![key].description);
 						item.kind = CompletionItemKind.Field;
-						if (obj.tags![key].namespace)
-							item.insertText = new SnippetString().appendText(obj.tags![key].namespace + ":" + key);
-						else
+						if (obj.tags![key].namespace) {
+							item.insertText = new SnippetString().appendText(`${obj.tags![key].namespace}:${key}`);
+						} else {
 							item.insertText = new SnippetString().appendText(key);
+						}
 						completions.push(item);
 					});
-			}
-			else if (info.type == "value") {
-				if (obj.attributes && info.name[info.name.length - 1] != "") {
+				}
+			} else if (info.type === 'value') {
+				if (obj.attributes && info.name[info.name.length - 1] !== '') {
 					obj = obj.attributes[info.name[info.name.length - 1]];
 				}
 				// single value
@@ -968,7 +980,7 @@ export class SDLContributions implements CompletionItemProvider {
 						if ((<any>obj.values.pattern).complete) {
 							const values = await Promise.resolve((<any>obj.values!.pattern!).complete(info));
 							values.forEach((value_2: any) => {
-								if (typeof value_2 == "object" && value_2 instanceof CompletionItem)
+								if (typeof value_2 === 'object' && value_2 instanceof CompletionItem)
 									completions.push(value_2);
 								else {
 									let item_1 = new CompletionItem(value_2);
@@ -980,8 +992,7 @@ export class SDLContributions implements CompletionItemProvider {
 							});
 							return completions;
 						}
-					}
-					else if (obj.values.enum) {
+					} else if (obj.values.enum) {
 						obj.values.enum.forEach((value: any) => {
 							let item = new CompletionItem(value);
 							item.detail = obj.values!.type;
@@ -989,40 +1000,39 @@ export class SDLContributions implements CompletionItemProvider {
 							item.insertText = new SnippetString().appendText(value);
 							completions.push(item);
 						});
-					}
-					else if (obj.values.type == "boolean") {
-						let item = new CompletionItem("true");
+					} else if (obj.values.type === 'boolean') {
+						let item = new CompletionItem('true');
 						item.detail = obj.values.type;
 						item.kind = CompletionItemKind.Keyword;
 						completions.push(item);
-						item = new CompletionItem("false");
+						item = new CompletionItem('false');
 						item.detail = obj.values.type;
 						item.kind = CompletionItemKind.Keyword;
 						completions.push(item);
 					}
 				}
-			}
-			else if (info.type == "attribute") {
+			} else if (info.type === 'attribute') {
 				// attribute name
 				if (obj.attributes) {
 					Object.keys(obj.attributes).forEach(attribute => {
 						let item = new CompletionItem(attribute);
 						item.documentation = new MarkdownString(obj.attributes![attribute].description);
 						item.kind = CompletionItemKind.Variable;
-						var insertText = new SnippetString().appendText(attribute + "=");
+						var insertText = new SnippetString().appendText(`${attribute}=`);
 						if (obj.attributes![attribute].values) {
 							item.detail = obj.attributes![attribute].values.type;
-							if (item.detail == "string")
-								insertText.appendText('"').appendPlaceholder("").appendText('"');
+							if (item.detail === 'string') {
+								insertText.appendText('"').appendPlaceholder('').appendText('"');
+							}
 						}
 						item.insertText = insertText;
 						completions.push(item);
 					});
 				}
 			}
+
 			return Promise.resolve(completions);
-		}
-		catch (e) {
+		} catch (e) {
 			return <any>Promise.reject(e);
 		}
 	}
@@ -1039,14 +1049,17 @@ export class SDLContributions implements CompletionItemProvider {
 				if (info.description) {
 					item.documentation = new MarkdownString(info.description);
 				}
+
 				if (info.version) {
 					item.detail = info.version;
 				}
+
 				return item;
 			}, err => {
 				return null;
 			});
 		}
+
 		return Promise.resolve(null);
 	}
 
@@ -1064,34 +1077,34 @@ export class SDLContributions implements CompletionItemProvider {
 
 		if (root.errors) {
 			root.errors.forEach((error: TagParseError) => {
-				errors.push(new Diagnostic(range(error.range), error.message, error.type == "error" ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning));
+				errors.push(new Diagnostic(range(error.range), error.message, error.type === 'error' ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning));
 			});
 		}
 
 		function checkValue(value: Value, obj: CompletionValues) {
 			if (value.type != obj.type) {
-				errors.push(new Diagnostic(range(value.range), "Type mismatch. Expected type: " + obj.type, DiagnosticSeverity.Error));
+				errors.push(new Diagnostic(range(value.range), `Type mismatch. Expected type: ${obj.type}`, DiagnosticSeverity.Error));
 			}
 
 			if (obj.pattern) {
-				if (typeof (<any>obj.pattern).validate == "function") {
+				if (typeof (<any>obj.pattern).validate === 'function') {
 					var msg = (<any>obj.pattern).validate(value);
 					if (msg) {
 						errors.push(new Diagnostic(range(value.range), msg, DiagnosticSeverity.Error));
 					}
-				} else if (typeof obj.pattern.exec == "function") {
+				} else if (typeof obj.pattern.exec === 'function') {
 					if (!obj.pattern.exec(value.value)) {
-						errors.push(new Diagnostic(range(value.range), "This value does not match the pattern", DiagnosticSeverity.Warning));
+						errors.push(new Diagnostic(range(value.range), 'This value does not match the pattern', DiagnosticSeverity.Warning));
 					}
 				}
 			} else if (obj.enum) {
 				if (obj.enum.indexOf(value.value) == -1 && !obj.enumOptional) {
-					errors.push(new Diagnostic(range(value.range), "This is not a valid value", DiagnosticSeverity.Error));
+					errors.push(new Diagnostic(range(value.range), 'This is not a valid value', DiagnosticSeverity.Error));
 				}
 			}
 		}
 
-		function scanTag(tag: Tag, obj: CompletionTag, nsName = "") {
+		function scanTag(tag: Tag, obj: CompletionTag, nsName = '') {
 			if (obj.tags) {
 				var hasTags = false;
 
@@ -1100,7 +1113,7 @@ export class SDLContributions implements CompletionItemProvider {
 					if (obj.tags![tagName]) {
 						tag.tags[tagName].forEach(childTag => {
 							if (obj.tags![tagName].namespace && obj.tags![tagName].namespace != nsName && tag.range) {
-								errors.push(new Diagnostic(range(tag.range), "Invalid namespace", DiagnosticSeverity.Error));
+								errors.push(new Diagnostic(range(tag.range), 'Invalid namespace', DiagnosticSeverity.Error));
 							}
 							scanTag(childTag, obj.tags![tagName]);
 						});
@@ -1108,7 +1121,7 @@ export class SDLContributions implements CompletionItemProvider {
 				});
 
 				if (obj.requireTags && !hasTags && tag.range) {
-					errors.push(new Diagnostic(range(tag.range), "This node must have children", DiagnosticSeverity.Error));
+					errors.push(new Diagnostic(range(tag.range), 'This node must have children', DiagnosticSeverity.Error));
 				}
 			}
 
@@ -1125,21 +1138,21 @@ export class SDLContributions implements CompletionItemProvider {
 					checkValue(value, obj.values!);
 				});
 
-				if (typeof obj.minValues == "number") {
+				if (typeof obj.minValues === 'number') {
 					if (tag.values.length < obj.minValues && tag.range) {
-						errors.push(new Diagnostic(range(tag.range), "Not enough values. Requires at least " + obj.minValues, DiagnosticSeverity.Error));
+						errors.push(new Diagnostic(range(tag.range), `Not enough values. Requires at least ${obj.minValues}`, DiagnosticSeverity.Error));
 					}
 				}
 
 				if (obj.suggestShouldHaveValues) {
 					if (tag.values.length == 0 && tag.range) {
-						errors.push(new Diagnostic(range(tag.range), "This directive should specify some values, otherwise it might not have any effect", DiagnosticSeverity.Information));
+						errors.push(new Diagnostic(range(tag.range), 'This directive should specify some values, otherwise it might not have any effect', DiagnosticSeverity.Information));
 					}
 				}
 
-				if (typeof obj.maxValues == "number") {
+				if (typeof obj.maxValues === 'number') {
 					if (tag.values.length > obj.maxValues && tag.range) {
-						errors.push(new Diagnostic(range(tag.range), "Too many values. Allows at most " + obj.maxValues, DiagnosticSeverity.Error));
+						errors.push(new Diagnostic(range(tag.range), `Too many values. Allows at most ${obj.maxValues}`, DiagnosticSeverity.Error));
 					}
 				}
 			}

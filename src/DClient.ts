@@ -70,29 +70,29 @@ export default class DClient extends LanguageClient {
 		this.served = served;
 
 		extension.subs.push(commands.registerCommand('code-d.switchConfiguration', this.switchConfigurationCommand.bind(this)));
-		extension.subs.push(commands.registerCommand("code-d.switchArchType", this.switchArchTypeCommand.bind(this)));
-		extension.subs.push(commands.registerCommand("code-d.switchBuildType", this.switchBuildTypeCommand.bind(this)));
-		extension.subs.push(commands.registerCommand("code-d.switchCompiler", this.switchCompilerCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.switchArchType', this.switchArchTypeCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.switchBuildType', this.switchBuildTypeCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.switchCompiler', this.switchCompilerCommand.bind(this)));
 
-		extension.subs.push(commands.registerTextEditorCommand("code-d.sortImports", this.sortImportsCommand.bind(this)));
-		extension.subs.push(commands.registerTextEditorCommand("code-d.implementMethods", this.implementMethodsCommand.bind(this)));
-		extension.subs.push(commands.registerTextEditorCommand("code-d.addImport", this.addImportCommand.bind(this)));
+		extension.subs.push(commands.registerTextEditorCommand('code-d.sortImports', this.sortImportsCommand.bind(this)));
+		extension.subs.push(commands.registerTextEditorCommand('code-d.implementMethods', this.implementMethodsCommand.bind(this)));
+		extension.subs.push(commands.registerTextEditorCommand('code-d.addImport', this.addImportCommand.bind(this)));
 
-		extension.subs.push(commands.registerTextEditorCommand("code-d.ignoreDscannerKey", this.ignoreDscannerKeyCommand.bind(this)));
+		extension.subs.push(commands.registerTextEditorCommand('code-d.ignoreDscannerKey', this.ignoreDscannerKeyCommand.bind(this)));
 
-		extension.subs.push(commands.registerCommand("code-d.killServer", this.killServerCommand.bind(this)));
-		extension.subs.push(commands.registerCommand("code-d.restartServer", this.restartServerCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.killServer', this.killServerCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.restartServer', this.restartServerCommand.bind(this)));
 
-		extension.subs.push(commands.registerCommand("code-d.reloadImports", this.reloadImportsCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.reloadImports', this.reloadImportsCommand.bind(this)));
 
-		extension.subs.push(commands.registerTextEditorCommand("code-d.convertDubRecipe", this.convertDubRecipeCommand.bind(this)));
+		extension.subs.push(commands.registerTextEditorCommand('code-d.convertDubRecipe', this.convertDubRecipeCommand.bind(this)));
 
-		extension.subs.push(commands.registerCommand("code-d.addDependency", this.addDependencyCommand.bind(this)));
-		extension.subs.push(commands.registerCommand("code-d.updateDependency", this.updateDependencyCommand.bind(this)));
-		extension.subs.push(commands.registerCommand("code-d.removeDependency", this.removeDependencyCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.addDependency', this.addDependencyCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.updateDependency', this.updateDependencyCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.removeDependency', this.removeDependencyCommand.bind(this)));
 
-		extension.subs.push(commands.registerCommand("code-d.insertDscanner", this.insertDscannerCommand.bind(this)));
-		extension.subs.push(commands.registerCommand("code-d.dumpServedInfo", this.dumpServedInfoCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.insertDscanner', this.insertDscannerCommand.bind(this)));
+		extension.subs.push(commands.registerCommand('code-d.dumpServedInfo', this.dumpServedInfoCommand.bind(this)));
 	}
 
 	async listConfigurations(): Promise<string[]> {
@@ -136,7 +136,7 @@ export default class DClient extends LanguageClient {
 	}
 
 	async addImport(uri: Uri, name: string, location: any): Promise<TextEdit> {
-		return await this.sendRequest<TextEdit>("served/addImport", {
+		return await this.sendRequest<TextEdit>('served/addImport', {
 			textDocument: { uri: uri.toString() },
 			name: name,
 			location: location,
@@ -144,7 +144,7 @@ export default class DClient extends LanguageClient {
 	}
 
 	async implementMethods(uri: Uri, location: any): Promise<TextEdit[]> {
-		return await this.sendRequest<TextEdit[]>("served/implementMethods", {
+		return await this.sendRequest<TextEdit[]>('served/implementMethods', {
 			textDocument: { uri: uri.toString() },
 			location: location,
 		});
@@ -176,7 +176,7 @@ export default class DClient extends LanguageClient {
 
 			if (config != null) {
 				if (await this.switchConfig(config)) {
-					this.served.emit("config-change", config);
+					this.served.emit('config-change', config);
 				} else {
 					window.showErrorMessage(`Invalid configuration: ${config}`);
 				}
@@ -209,8 +209,8 @@ export default class DClient extends LanguageClient {
 			const arch: CustomQuickPickItem | undefined = await showQuickPickWithInput(pickItems, {
 				canPickMany: false,
 				matchOnDescription: true,
-				placeHolder: "Pick architecture or enter custom triple",
-				title: "Pick new target architecture"
+				placeHolder: 'Pick architecture or enter custom triple',
+				title: 'Pick new target architecture'
 			});
 
 			if (arch != null) {
@@ -275,7 +275,7 @@ export default class DClient extends LanguageClient {
 			const settingCompiler = extension.settings.dubCompiler;
 
 			const extra: CustomQuickPickItem[] = settingCompiler
-				? [{ label: settingCompiler, value: settingCompiler, description: "(from User Settings)" }]
+				? [{ label: settingCompiler, value: settingCompiler, description: '(from User Settings)' }]
 				: [];
 
 			const compilers = await listCompilers();
@@ -289,8 +289,8 @@ export default class DClient extends LanguageClient {
 			const value = await showQuickPickWithInput(items, {
 				canPickMany: false,
 				matchOnDescription: true,
-				placeHolder: "Enter compiler name (e.g. dmd, ldc2, gdc) or full exe path",
-				title: "Pick new dub build compiler"
+				placeHolder: 'Enter compiler name (e.g. dmd, ldc2, gdc) or full exe path',
+				title: 'Pick new dub build compiler'
 			});
 
 			if (value) {
@@ -362,7 +362,7 @@ export default class DClient extends LanguageClient {
 				const r = change.replacements[i];
 				if (r.range[0] == r.range[1]) {
 					edit.insert(editor.document.positionAt(r.range[0]), r.content);
-				} else if (r.content == "") {
+				} else if (r.content === '') {
 					edit.delete(new Range(editor.document.positionAt(r.range[0]), editor.document.positionAt(r.range[1])));
 				} else {
 					edit.replace(new Range(editor.document.positionAt(r.range[0]), editor.document.positionAt(r.range[1])), r.content);
@@ -467,7 +467,7 @@ export default class DClient extends LanguageClient {
 			if (key != null) {
 				if (typeof mode === 'string') {
 					editor.edit(edit => {
-						edit.insert(editor.document.lineAt(editor.selection.end).range.end, " // @suppress(" + key + ")");
+						edit.insert(editor.document.lineAt(editor.selection.end).range.end, ` // @suppress(${key})`);
 						client.served.triggerDscanner(editor.document.uri);
 					});
 				} else {
@@ -476,7 +476,7 @@ export default class DClient extends LanguageClient {
 			}
 		} else {
 			if (typeof mode === 'string') {
-				edit.insert(editor.document.lineAt(editor.selection.end).range.end, " // @suppress(" + key + ")");
+				edit.insert(editor.document.lineAt(editor.selection.end).range.end, ` // @suppress(${key})`);
 				client.served.triggerDscanner(editor.document.uri);
 			} else {
 				doChange(key, mode);
@@ -505,13 +505,13 @@ export default class DClient extends LanguageClient {
 	private async reloadImportsCommand() {
 		try {
 			if (await this.updateImports()) {
-				window.showInformationMessage("Successfully reloaded import paths");
+				window.showInformationMessage('Successfully reloaded import paths');
 			} else {
-				window.showWarningMessage("Import paths are empty!");
+				window.showWarningMessage('Import paths are empty!');
 			}
 		} catch (err) {
 			this.outputChannel.appendLine(`${err}`);
-			window.showErrorMessage("Could not update imports. dub might not be initialized yet!");
+			window.showErrorMessage('Could not update imports. dub might not be initialized yet!');
 		}
 	}
 
@@ -532,7 +532,7 @@ export default class DClient extends LanguageClient {
 
 	private async addDependencyCommand() {
 		const pkg = await window.showQuickPick(listPackageOptions(), {
-			placeHolder: "Dependency Name",
+			placeHolder: 'Dependency Name',
 			matchOnDescription: false,
 			matchOnDetail: true,
 		});
@@ -564,23 +564,23 @@ export default class DClient extends LanguageClient {
 	}
 
 	private async insertDscannerCommand() {
-		const defaultDscannerIni = "[analysis.config.StaticAnalysisConfig]\nstyle_check=\"enabled\"\n";
+		const defaultDscannerIni = '[analysis.config.StaticAnalysisConfig]\nstyle_check=\"enabled\"\n';
 
 		if (!window.activeTextEditor) {
-			return window.showErrorMessage("No text editor active");
+			return window.showErrorMessage('No text editor active');
 		}
 
 		const ini = await this.served.listDScannerConfig(window.activeTextEditor.document.uri);
 
-		var text = "";
+		let text = '';
 		ini.forEach(section => {
-			text += "; " + section.description + "\n";
-			text += "[" + section.name + "]\n";
+			text += `; ${section.description}\n`;
+			text += `[${section.name}]\n`;
 			section.features.forEach(feature => {
-				text += "; " + feature.description + "\n";
-				text += feature.name + "=\"" + feature.enabled + "\"\n";
+				text += `; ${feature.description}\n`;
+				text += `${feature.name}=\"${feature.enabled}\"\n`;
 			});
-			text += "\n";
+			text += '\n';
 		});
 
 		text = text.length > 0 ? text : defaultDscannerIni;

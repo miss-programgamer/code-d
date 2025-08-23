@@ -11,7 +11,7 @@
 	"icon": "images/dlogo-square.png",
 	"license": "MIT",
 	"engines": {
-		"vscode": "^1.60.0"
+		"vscode": "^1.75.0"
 	},
 	"categories": [
 		"Programming Languages",
@@ -21,33 +21,13 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onLanguage:d",
-		"onLanguage:dml",
 		"onDebugResolve:code-d",
 		"onDebugDynamicConfigurations",
 		"onDebugInitialConfigurations",
 		"workspaceContains:dub.json",
 		"workspaceContains:dub.sdl",
-		"onCommand:code-d.switchConfiguration",
-		"onCommand:code-d.switchArchType",
-		"onCommand:code-d.switchBuildType",
-		"onCommand:code-d.switchCompiler",
-		"onCommand:code-d.killServer",
-		"onCommand:code-d.restartServer",
-		"onCommand:code-d.reloadImports",
 		"onCommand:code-d.stop",
-		"onCommand:code-d.insertDscanner",
-		"onCommand:code-d.rdmdCurrent",
-		"onCommand:code-d.generateCoverageReport",
-		"onCommand:code-d.showGCCalls",
-		"onCommand:code-d.createProject",
-		"onCommand:code-d.addImport",
-		"onCommand:code-d.searchDocs",
-		"onCommand:code-d.openDocsAtCursor",
-		"onCommand:code-d.convertDubRecipe",
-		"onCommand:code-d.setupCompiler",
-		"onCommand:code-d.viewUserGuide",
-		"onCustomEditor:code-d.dubRecipe"
+		"onCommand:code-d.addImport"
 	],
 	"main": "./out/extension.js",
 	"keywords": [

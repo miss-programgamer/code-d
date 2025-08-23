@@ -87,8 +87,8 @@ export class JSONProvider implements HoverProvider, CompletionItemProvider {
 		let proposed: { [key: string]: boolean; } = {};
 		let collector: ISuggestionsCollector = {
 			add: (suggestion: CompletionItem) => {
-				if (!proposed[typeof suggestion.label == "string" ? suggestion.label : suggestion.label.label]) {
-					proposed[typeof suggestion.label == "string" ? suggestion.label : suggestion.label.label] = true;
+				if (!proposed[typeof suggestion.label === 'string' ? suggestion.label : suggestion.label.label]) {
+					proposed[typeof suggestion.label === 'string' ? suggestion.label : suggestion.label.label] = true;
 					if (overwriteRange) {
 						suggestion.range = overwriteRange;
 					}

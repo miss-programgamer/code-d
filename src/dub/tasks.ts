@@ -9,17 +9,17 @@ export class DubTaskProvider implements TaskProvider {
 
 	async provideTasks(_token?: CancellationToken | undefined): Promise<Task[]> {
 		const dubLint = extension.settings.enableDubLinting;
-		const taskConfigs = await this.served.sendRequest<DubTask[]>("served/buildTasks");
+		const taskConfigs = await this.served.sendRequest<DubTask[]>('served/buildTasks');
 
 		const ret: Task[] = [];
 
 		for (const taskConfig of taskConfigs) {
 			var target: WorkspaceFolder | TaskScope | undefined;
-			let cwd: string = "";
+			let cwd: string = '';
 
-			if (taskConfig.scope == "global") {
+			if (taskConfig.scope === 'global') {
 				target = TaskScope.Global;
-			} else if (taskConfig.scope == "workspace") {
+			} else if (taskConfig.scope === 'workspace') {
 				target = TaskScope.Workspace;
 			} else {
 				let uri = Uri.parse(taskConfig.scope);
@@ -31,25 +31,25 @@ export class DubTaskProvider implements TaskProvider {
 				continue;
 			}
 
-			var proc: string = taskConfig.exec.shift() || "exit";
+			var proc: string = taskConfig.exec.shift() ?? 'exit';
 			var args: string[] = taskConfig.exec;
 
 			if (taskConfig.definition.cwd) {
 				cwd = taskConfig.definition.cwd;
 			}
 
-			if (typeof target == "object" && target.uri) {
-				cwd = cwd.replace("${workspaceFolder}", target.uri.fsPath);
+			if (typeof target === 'object' && target.uri) {
+				cwd = cwd.replace('${workspaceFolder}', target.uri.fsPath);
 			}
 
 			// set more flexible run args for UI import
-			taskConfig.definition.compiler = "$current";
-			taskConfig.definition.archType = "$current";
-			taskConfig.definition.buildType = "$current";
-			taskConfig.definition.configuration = "$current";
+			taskConfig.definition.compiler = '$current';
+			taskConfig.definition.archType = '$current';
+			taskConfig.definition.buildType = '$current';
+			taskConfig.definition.configuration = '$current';
 
 			if (!dubLint && !Array.isArray(taskConfig.problemMatchers) || taskConfig.problemMatchers.length == 0) {
-				taskConfig.problemMatchers = ["$dmd"];
+				taskConfig.problemMatchers = ['$dmd'];
 			}
 
 			var task = new Task(taskConfig.definition, target, taskConfig.name, taskConfig.source, makeExecutor(proc, args, cwd), taskConfig.problemMatchers);
@@ -58,22 +58,22 @@ export class DubTaskProvider implements TaskProvider {
 				focus: Boolean(taskConfig.definition.run)
 			};
 
-			task.detail = `dub ${args.join(" ")}`;
+			task.detail = `dub ${args.join(' ')}`;
 
 			switch (taskConfig.group) {
-				case "clean":
+				case 'clean':
 					task.group = TaskGroup.Clean;
 					break;
 
-				case "build":
+				case 'build':
 					task.group = TaskGroup.Build;
 					break;
 
-				case "rebuild":
+				case 'rebuild':
 					task.group = TaskGroup.Rebuild;
 					break;
 
-				case "test":
+				case 'test':
 					task.group = TaskGroup.Test;
 					break;
 			}
@@ -86,11 +86,11 @@ export class DubTaskProvider implements TaskProvider {
 
 	async resolveTask(task: Task & { definition: DubTaskDefinition; }, _token?: CancellationToken | undefined): Promise<Task> {
 		async function insertDollarCurrent(args: string[], prefix: string, str: string | undefined, servedFetchCommand: string): Promise<void> {
-			if (str == "$current") {
+			if (str === '$current') {
 				str = await extension.served?.client.sendRequest<string | undefined>(servedFetchCommand);
 			}
 
-			if (str != null) {
+			if (str !== null) {
 				args.push(prefix + str);
 			}
 		}
@@ -98,26 +98,26 @@ export class DubTaskProvider implements TaskProvider {
 		const dubLint = extension.settings.enableDubLinting;
 		const args: string[] = [extension.settings.dubPath];
 
-		args.push(task.definition.test ? "test" : task.definition.run ? "run" : "build");
+		args.push(task.definition.test ? 'test' : task.definition.run ? 'run' : 'build');
 
 		if (task.definition.root) {
-			args.push("--root=" + task.definition.root);
+			args.push(`--root=${task.definition.root}`);
 		}
 
 		if (task.definition.overrides) {
 			task.definition.overrides.forEach(override => {
-				args.push("--override-config=" + override);
+				args.push(`--override-config=${override}`);
 			});
 		}
 
 		if (task.definition.force) {
-			args.push("--force");
+			args.push('--force');
 		}
 
-		await insertDollarCurrent(args, "--compiler=", task.definition.compiler, "served/getCompiler");
-		await insertDollarCurrent(args, "--arch=", task.definition.archType, "served/getArchType");
-		await insertDollarCurrent(args, "--build=", task.definition.buildType, "served/getBuildType");
-		await insertDollarCurrent(args, "--config=", task.definition.configuration, "served/getConfig");
+		await insertDollarCurrent(args, '--compiler=', task.definition.compiler, 'served/getCompiler');
+		await insertDollarCurrent(args, '--arch=', task.definition.archType, 'served/getArchType');
+		await insertDollarCurrent(args, '--build=', task.definition.buildType, 'served/getBuildType');
+		await insertDollarCurrent(args, '--config=', task.definition.configuration, 'served/getConfig');
 
 		if (Array.isArray(task.definition.dub_args)) {
 			args.push.apply(args, task.definition.dub_args);
@@ -125,27 +125,27 @@ export class DubTaskProvider implements TaskProvider {
 
 		if (Array.isArray(task.definition.args)) {
 			args.push.apply(args, task.definition.args);
-			window.showWarningMessage("Your task definition is using the deprecated \"args\" field and will be ignored in an upcoming release.\nPlease change \"args\": to \"dub_args\": to keep old behavior.");
+			window.showWarningMessage('Your task definition is using the deprecated "args" field and will be ignored in an upcoming release.\nPlease change "args": to "dub_args": to keep old behavior.');
 		}
 
 		if (Array.isArray(task.definition.target_args) && (task.definition.test || task.definition.run)) {
 			// want to validate test/run in JSON schema but tasks schema doesn't allow advanced JSON schema things to be put on the object validator, only on properties
-			args.push("--");
+			args.push('--');
 			args.push.apply(args, task.definition.target_args);
 		}
 
 		const options: any = task.scope && (task.scope as WorkspaceFolder).uri;
-		const exec = makeExecutor(args.shift() || "exit", args, (options && options.fsPath) || task.definition.cwd || undefined);
+		const exec = makeExecutor(args.shift() ?? 'exit', args, (options && options.fsPath) || task.definition.cwd || undefined);
 
 		const result = new Task(
 			task.definition,
 			task.scope || TaskScope.Global,
-			task.name || `dub ${task.definition.test ? "Test" : task.definition.run ? "Run" : "Build"}`,
-			"dub", exec, dubLint ? task.problemMatchers : ["$dmd"]
+			task.name || `dub ${task.definition.test ? 'Test' : task.definition.run ? 'Run' : 'Build'}`,
+			'dub', exec, dubLint ? task.problemMatchers : ['$dmd']
 		);
 
 		result.isBackground = task.isBackground;
-		result.detail = `dub ${args.join(" ")}`;
+		result.detail = `dub ${args.join(' ')}`;
 
 		if (task.presentationOptions) {
 			result.presentationOptions = task.presentationOptions;
@@ -180,7 +180,7 @@ type DubTask = {
 	name: string,
 	isBackground: boolean,
 	source: string,
-	group: "clean" | "build" | "rebuild" | "test",
+	group: 'clean' | 'build' | 'rebuild' | 'test',
 	problemMatchers: string[];
 };
 

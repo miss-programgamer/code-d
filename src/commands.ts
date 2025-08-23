@@ -86,7 +86,7 @@ export async function registerCommands() {
 
 async function rdmdCurrentCommand(file?: Uri) {
 	if (window.activeTextEditor == null) {
-		return window.showErrorMessage("No text editor active");
+		return window.showErrorMessage('No text editor active');
 	}
 
 	const doc = window.activeTextEditor.document;
@@ -101,13 +101,13 @@ async function rdmdCurrentCommand(file?: Uri) {
 		if (extension.settings.get('files.autoSave') !== 'off') {
 			choice = btnSave;
 		} else {
-			choice = await window.showWarningMessage("The file is not saved, do you want to proceed?", btnSave, btnDisk, btnCancel);
+			choice = await window.showWarningMessage('The file is not saved, do you want to proceed?', btnSave, btnDisk, btnCancel);
 		}
 
 		switch (choice) {
 			case btnSave:
 				if (!await window.activeTextEditor.document.save()) {
-					window.showErrorMessage("Aborting RDMD run because save failed");
+					window.showErrorMessage('Aborting RDMD run because save failed');
 					return;
 				}
 				break;
@@ -131,10 +131,10 @@ async function rdmdCurrentCommand(file?: Uri) {
 	}];
 
 	const cwd = file != null ? dirname(file.fsPath) : workspace.workspaceFolders != null ? workspace.workspaceFolders[0].uri.fsPath : undefined;
-	const shell = new ShellExecution({ value: "rdmd", quoting: ShellQuoting.Strong }, args, { cwd: cwd });
+	const shell = new ShellExecution({ value: 'rdmd', quoting: ShellQuoting.Strong }, args, { cwd: cwd });
 
 	var evalCounter = 0;
-	const task = new Task({ type: "rdmd", }, TaskScope.Workspace, "RDMD " + (file || ("eval code " + (++evalCounter))), "dlang", shell);
+	const task = new Task({ type: 'rdmd', }, TaskScope.Workspace, `RDMD ${file || (`eval code ${++evalCounter}`)}`, 'dlang', shell);
 	task.isBackground = false;
 	task.presentationOptions = { echo: file != null };
 
@@ -145,29 +145,29 @@ function viewDubPackageCommand(root: string, packageName?: string) {
 	const dependencyClickBehavior = extension.settings.dependencyClickBehavior;
 
 	switch (dependencyClickBehavior) {
-		case "listDocumentsPreview":
-		case "listDocumentsSource":
-		case "listDocumentsBoth":
-			commands.executeCommand("code-d.listDubPackageDocuments", dependencyClickBehavior, root, packageName);
+		case 'listDocumentsPreview':
+		case 'listDocumentsSource':
+		case 'listDocumentsBoth':
+			commands.executeCommand('code-d.listDubPackageDocuments', dependencyClickBehavior, root, packageName);
 			break;
 
-		case "openRecipe":
-			commands.executeCommand("code-d.openDubRecipe", root);
+		case 'openRecipe':
+			commands.executeCommand('code-d.openDubRecipe', root);
 			break;
 
-		case "openDpldocs":
-			commands.executeCommand("code-d.openDubOnDpldocs", root);
+		case 'openDpldocs':
+			commands.executeCommand('code-d.openDubOnDpldocs', root);
 			break;
 
-		case "doNothing":
+		case 'doNothing':
 			break;
 
-		case "openFileDialog":
-			commands.executeCommand("code-d.openDependencyFile", root);
+		case 'openFileDialog':
+			commands.executeCommand('code-d.openDependencyFile', root);
 			break;
 
 		default:
-			window.showErrorMessage("Unknown d.dependencyClickBehavior setting: " + JSON.stringify(dependencyClickBehavior));
+			window.showErrorMessage(`Unknown d.dependencyClickBehavior setting: ${JSON.stringify(dependencyClickBehavior)}`);
 			break;
 	}
 }
@@ -194,7 +194,7 @@ const recipeFilenames = ['dub.sdl', 'dub.json', 'package.json'];
 async function openDubRecipeCommand(root: string | DubDependency | undefined) {
 	function showError() {
 		if (root instanceof DubDependency) {
-			window.showErrorMessage("No recipe found");
+			window.showErrorMessage('No recipe found');
 		}
 	};
 
@@ -243,7 +243,7 @@ async function openDubOnDpldocsCommand(root: DubDependency) {
 	}
 }
 
-type CreateProjectBehavior = DubDependency | "listDocumentsPreview" | "listDocumentsSource" | "listDocumentsBoth";
+type CreateProjectBehavior = DubDependency | 'listDocumentsPreview' | 'listDocumentsSource' | 'listDocumentsBoth';
 
 async function createProjectCommand(behavior: CreateProjectBehavior, root?: string, packageName?: string) {
 	const explicit = behavior instanceof DubDependency;
@@ -251,18 +251,18 @@ async function createProjectCommand(behavior: CreateProjectBehavior, root?: stri
 	async function showError(force: boolean = false) {
 		if (explicit || force) {
 			if (root) {
-				const browseBtn = "Browse Files";
-				const openRecipe = "Open Recipe";
+				const browseBtn = 'Browse Files';
+				const openRecipe = 'Open Recipe';
 
-				const btn = await window.showErrorMessage("No viewable files found.", browseBtn, openRecipe);
+				const btn = await window.showErrorMessage('No viewable files found.', browseBtn, openRecipe);
 
 				if (btn == browseBtn) {
-					commands.executeCommand("code-d.openDependencyFile", root);
+					commands.executeCommand('code-d.openDependencyFile', root);
 				} else if (btn == openRecipe) {
-					commands.executeCommand("code-d.openDubRecipe", root);
+					commands.executeCommand('code-d.openDubRecipe', root);
 				}
 			} else {
-				window.showErrorMessage("No viewable files found.");
+				window.showErrorMessage('No viewable files found.');
 			}
 		}
 	}
@@ -270,7 +270,7 @@ async function createProjectCommand(behavior: CreateProjectBehavior, root?: stri
 	if (behavior instanceof DubDependency) {
 		root = behavior.info?.path!;
 		packageName = behavior.info?.name;
-		behavior = "listDocumentsBoth";
+		behavior = 'listDocumentsBoth';
 
 		if (root == null) {
 			return await showError();
@@ -278,8 +278,8 @@ async function createProjectCommand(behavior: CreateProjectBehavior, root?: stri
 	}
 
 	// preview + view source if behavior is invalid value
-	const doPreview = behavior != "listDocumentsSource";
-	const doViewSource = behavior != "listDocumentsPreview";
+	const doPreview = behavior !== 'listDocumentsSource';
+	const doViewSource = behavior !== 'listDocumentsPreview';
 
 	if (root) {
 		const entries = await readdir(root, { withFileTypes: true });
@@ -290,7 +290,7 @@ async function createProjectCommand(behavior: CreateProjectBehavior, root?: stri
 			const filter = extension.settings.dependencyTextDocumentFilter;
 
 			for (let i = 0; i < filter.length; i++) {
-				if (new RegExp(filter[i], "i").exec(filename)) {
+				if (new RegExp(filter[i], 'i').exec(filename)) {
 					return true;
 				}
 			}
@@ -321,7 +321,7 @@ async function createProjectCommand(behavior: CreateProjectBehavior, root?: stri
 			if (!(doPreview || !previewable) || doViewSource && previewable) {
 				items.push({
 					label: readmes[i],
-					description: "$(file-code) source",
+					description: '$(file-code) source',
 					args: [readmes[i], false]
 				});
 			}
@@ -333,7 +333,7 @@ async function createProjectCommand(behavior: CreateProjectBehavior, root?: stri
 			args = items[0].args;
 		} else {
 			args = (await window.showQuickPick(items, {
-				placeHolder: "Select file to show",
+				placeHolder: 'Select file to show',
 			}))?.args;
 		}
 
@@ -395,7 +395,7 @@ function withProject<R, T, A extends any[]>(fn: (this: T, project: ActiveDubConf
 			const project = await extension.served.getActiveDubConfig();
 			return fn.apply(this, [project, ...args]);
 		} else {
-			throw new Error("Can't read DUB configs because serve-d is not yet started.");
+			throw new Error('Can\'t read DUB configs because serve-d is not yet started.');
 		}
 	};
 }
@@ -457,7 +457,7 @@ async function previewReadme(dir: Uri, uri: Uri, richPreview: boolean, packageNa
 
 		case '.htm':
 		case '.html':
-			const title = (packageName != null ? packageName + ' ' : '') + basename(uri.path);
+			const title = (packageName != null ? `${packageName} ` : '') + basename(uri.path);
 			const panel = window.createWebviewPanel('dubReadme', title, ViewColumn.Active, {
 				enableCommandUris: false,
 				enableFindWidget: true,

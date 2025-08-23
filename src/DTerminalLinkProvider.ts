@@ -54,7 +54,7 @@ export async function findDErrorLines(line: string, cwd: string): Promise<Termin
 
 	let i = 0;
 	while (true) {
-		i = line.indexOf("(", i);
+		i = line.indexOf('(', i);
 
 		if (i == -1) {
 			break;
@@ -63,9 +63,9 @@ export async function findDErrorLines(line: string, cwd: string): Promise<Termin
 		let firstLineDigit = line[i + 1];
 
 		if (isDigit(firstLineDigit) && (
-			line.endsWith(".d", i)
-			|| line.endsWith(".di", i)
-			|| line.endsWith(".dt", i) // diet templates
+			line.endsWith('.d', i)
+			|| line.endsWith('.di', i)
+			|| line.endsWith('.dt', i) // diet templates
 			|| endsWithMixin(line, i)
 		)) {
 			result.push(extractFileLinkAt(cwd, line, i));
@@ -88,7 +88,7 @@ function endsWithMixin(line: string, endIndex: number): boolean {
 		endIndex--;
 	}
 
-	return line.endsWith("-mixin-", endIndex);
+	return line.endsWith('-mixin-', endIndex);
 }
 
 const invalidFilePathParts = new Set([
@@ -109,7 +109,7 @@ async function extractFileLinkAt(cwd: string, line: string, idx: number): Promis
 			return false;
 		}
 
-		if (process.platform == "win32" && c == ':' && !gotDriveLetter) {
+		if (process.platform === 'win32' && c === ':' && !gotDriveLetter) {
 			gotDriveLetter = true;
 			return true;
 		}
@@ -124,7 +124,7 @@ async function extractFileLinkAt(cwd: string, line: string, idx: number): Promis
 			}
 		}
 
-		return isValidFilePathPart(c) || c == ':';
+		return isValidFilePathPart(c) || c === ':';
 	}
 
 	let lineNo: number | undefined = undefined;
@@ -158,10 +158,10 @@ async function extractFileLinkAt(cwd: string, line: string, idx: number): Promis
 	}
 
 	if (endsWithMixin(file, end)) {
-		let newEnd = file.lastIndexOf("-mixin-", end);
+		const newEnd = file.lastIndexOf('-mixin-', end);
 
 		if (newEnd == -1) {
-			throw new Error("this should not happen");
+			throw new Error('this should not happen');
 		}
 
 		lineNo = parseInt(file.substring(newEnd + 7, end));
@@ -170,21 +170,21 @@ async function extractFileLinkAt(cwd: string, line: string, idx: number): Promis
 		end = newEnd;
 	}
 
-	let filePath = await resolveFilePath(file.substring(0, end), cwd);
+	const filePath = await resolveFilePath(file.substring(0, end), cwd);
 
-	if (!filePath) {
+	if (filePath != null) {
+		return {
+			startIndex: idx,
+			length: end + endOffset,
+			file: {
+				path: filePath,
+				line: lineNo,
+				column: column
+			}
+		};
+	} else {
 		return null;
 	}
-
-	return {
-		startIndex: idx,
-		length: end + endOffset,
-		file: {
-			path: filePath,
-			line: lineNo,
-			column: column
-		}
-	};
 }
 
 let resolveAllFilePathsForTest: boolean = false;

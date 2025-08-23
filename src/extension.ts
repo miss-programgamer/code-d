@@ -16,7 +16,7 @@ import { addJSONProviders } from './json-contributions.js';
 import { CoverageAnalyzer } from './coverage.js';
 import { registerCommands } from './commands.js';
 import { DubDependency } from './dub/view.js';
-import { builtinPlugins } from "./builtin_plugins.js";
+import { builtinPlugins } from './builtin_plugins.js';
 
 import Installer, { Release } from './installer.js';
 import ServeDCodeDAPI from './ServeDCodeDAPI.js';
@@ -33,7 +33,7 @@ import Settings from './Settings.js';
  * Extension entry point.
  * 
  * @param context VS Code extension context handle.
- * @returns An instance of the dlang API.
+ * @returns An instance of the code-d API.
  */
 export async function activate(context: ExtensionContext): Promise<CodedAPI | undefined> {
 	if (await extension.init(context)) {
@@ -44,6 +44,9 @@ export async function activate(context: ExtensionContext): Promise<CodedAPI | un
 	return extension.api;
 }
 
+/**
+ * Central class of code-d.
+ */
 export class Extension {
 	#output: OutputChannel;
 	#installer: Installer;
@@ -75,14 +78,14 @@ export class Extension {
 
 	async onDidChangeConfiguration(ev: ConfigurationChangeEvent) {
 		const needReloadSettings = [
-			"d.servedPath",
-			"d.servedReleaseChannel",
-			"d.dcdServerPath",
-			"d.dcdClientPath",
-			"d.scanAllFolders",
-			"d.neverUseDub",
-			"d.disabledRootGlobs",
-			"d.extraRoots",
+			'd.servedPath',
+			'd.servedReleaseChannel',
+			'd.dcdServerPath',
+			'd.dcdClientPath',
+			'd.scanAllFolders',
+			'd.neverUseDub',
+			'd.disabledRootGlobs',
+			'd.extraRoots',
 		];
 
 		// ignore config updates that come from dlang or serve-d
@@ -95,14 +98,13 @@ export class Extension {
 		});
 
 		if (changed) {
-			const reloadBtn = "Reload VSCode";
-			const ignoreBtn = "Ignore";
+			const reloadItem = 'Reload VSCode';
+			const ignoreItem = 'Ignore';
 
-			const btn = await window.showInformationMessage("You have changed dlang's `"
-				+ changed + "` setting. To apply the new value, you need to reload VSCode.",
-				reloadBtn, ignoreBtn);
+			const message = `You have changed dlang's \`${changed}\` setting. To apply the new value, you need to reload VSCode.`;
+			const selected = await window.showInformationMessage(message, reloadItem, ignoreItem);
 
-			if (btn == reloadBtn) {
+			if (selected === reloadItem) {
 				commands.executeCommand('workbench.action.reloadWindow');
 			}
 		}
@@ -114,26 +116,29 @@ export class Extension {
 		this.#globals = new Globals(context);
 
 		const globals = this.#globals;
-		const userConfig = "Open User Settings";
+		const userConfig = 'Open User Settings';
 
 		const proxy = httpProxy();
 		if (proxy != null) {
-			process.env["http_proxy"] = proxy;
+			process.env['http_proxy'] = proxy;
 		}
 
 		await restoreCreateProjectPackageBackup();
 
 		if (globals.checkedCompiler !== 2) {
-			console.log("Checking if compiler is present");
+			console.log('Checking if compiler is present');
+
 			this.#compiler = await checkCompilers();
 			await globals.setCheckedCompiler(2);
-			let setupDCompiler = "Change D Compiler";
-			let gettingStarted = "Getting Started";
+
+			let setupDCompiler = 'Change D Compiler';
+			let gettingStarted = 'Getting Started';
+
 			if (this.#compiler?.name ?? false) {
 				let compilerSpec = this.#compiler.name;
 
 				if (this.#compiler.version) {
-					compilerSpec += " " + this.#compiler.version;
+					compilerSpec += ` ${this.#compiler.version}`;
 				}
 
 				let [_, checked] = makeCompilerInstallButtons(this.#compiler);
@@ -144,44 +149,35 @@ export class Extension {
 						action();
 				}
 
-				window.showInformationMessage("dlang has auto-detected " + compilerSpec + " and preconfigured it. "
-					+ "If you would like to use another compiler, please click the button below.",
-					setupDCompiler, gettingStarted)
-					.then(btn => {
-						if (btn == setupDCompiler) {
-							commands.executeCommand("code-d.setupCompiler");
-						} else if (btn == gettingStarted) {
-							commands.executeCommand("workbench.action.openWalkthrough", "webfreak.dlang#welcome");
-						}
-					});
+				const message = `dlang has auto-detected ${compilerSpec} and preconfigured it. If you would like to use another compiler, please click the button below.`;
+				const selected = await window.showInformationMessage(message, setupDCompiler, gettingStarted);
+
+				if (selected === setupDCompiler) {
+					commands.executeCommand('code-d.setupCompiler');
+				} else if (selected === gettingStarted) {
+					commands.executeCommand('workbench.action.openWalkthrough', 'webfreak.dlang#welcome');
+				}
 			} else {
-				gettingStarted = "First time setup";
-				window.showWarningMessage(
-					"dlang has not detected any compatible D compiler. Please click the button below to install and configure "
-					+ "a D compiler on your system or just for dlang. Auto completion will not contain any standard "
-					+ "library symbols and building projects will not work until then.",
-					gettingStarted)
-					.then(btn => {
-						if (btn == gettingStarted) {
-							commands.executeCommand("workbench.action.openWalkthrough", "webfreak.dlang#welcome");
-						}
-					});
+				const firstTimeSetup = 'First time setup';
+
+				const message = `dlang has not detected any compatible D compiler. Please click the button below to install and configure a D compiler on your system or just for dlang. Auto completion will not contain any standard library symbols and building projects will not work until then.`;
+				const selected = await window.showWarningMessage(message, firstTimeSetup);
+
+				if (selected === firstTimeSetup) {
+					commands.executeCommand('workbench.action.openWalkthrough', 'webfreak.dlang#welcome');
+				}
 			}
 		}
 
 		// disable dub checks for now because precompiled dub binaries on windows are broken
 		if (!await this.checkDub(undefined)) {
-			console.error("Failed to automatically find dub or execute it! Please set d.dubPath properly.");
-
 			if (this.settings.dubPath !== 'dub') {
-				window.showErrorMessage("The dub path specified in your user settings via d.dubPath is not a"
-					+ " valid dub executable. Please unset it to automatically find it through your compiler or manually"
-					+ " point it to a valid executable file.\n\nIssues building projects might occur.",
-					userConfig).then((item) => {
-						if (item == userConfig) {
-							commands.executeCommand("workbench.action.openGlobalSettings");
-						}
-					});
+				const message = `The dub path specified in your user settings via d.dubPath is not a valid dub executable. Please unset it to automatically find it through your compiler or manually point it to a valid executable file.\n\nIssues building projects might occur.`;
+				const selected = await window.showErrorMessage(message, userConfig);
+
+				if (selected === userConfig) {
+					commands.executeCommand('workbench.action.openGlobalSettings');
+				}
 			}
 		}
 
@@ -195,24 +191,21 @@ export class Extension {
 			await this.settings.setReleaseChannel('nightly');
 			channelString = 'nightly';
 
-			let stable = "Switch to Stable";
-			let beta = "Switch to Beta";
+			const stable = 'Switch to Stable';
+			const beta = 'Switch to Beta';
 
-			window.showInformationMessage("Hey! The setting 'd.betaStream' no longer exists and has been replaced with "
-				+ "'d.servedReleaseChannel'. Your settings have been automatically updated to fetch nightly builds, but you "
-				+ "probably want to remove the old setting.\n\n"
-				+ "Stable and beta releases are planned more frequently now, so they might be a better option for you.",
-				stable, beta, userConfig).then(item => {
-					if (item == userConfig) {
-						commands.executeCommand("workbench.action.openGlobalSettings");
-					} else if (item == stable) {
-						this.hideNextPotentialConfigUpdateWarning();
-						this.didChangeReleaseChannel(this.settings.setReleaseChannel('stable'));
-					} else if (item == beta) {
-						this.hideNextPotentialConfigUpdateWarning();
-						this.didChangeReleaseChannel(this.settings.setReleaseChannel('beta'));
-					}
-				});
+			const message = `Hey! The setting 'd.betaStream' no longer exists and has been replaced with 'd.servedReleaseChannel'. Your settings have been automatically updated to fetch nightly builds, but you probably want to remove the old setting.\n\nStable and beta releases are planned more frequently now, so they might be a better option for you.`;
+			const selected = await window.showInformationMessage(message, stable, beta, userConfig)
+
+			if (selected === userConfig) {
+				commands.executeCommand('workbench.action.openGlobalSettings');
+			} else if (selected === stable) {
+				this.hideNextPotentialConfigUpdateWarning();
+				this.didChangeReleaseChannel(this.settings.setReleaseChannel('stable'));
+			} else if (selected === beta) {
+				this.hideNextPotentialConfigUpdateWarning();
+				this.didChangeReleaseChannel(this.settings.setReleaseChannel('beta'));
+			}
 		}
 
 		const currentCodedServedIteration = 1; // bump on new dlang releases that want new serve-d
@@ -283,34 +276,34 @@ export class Extension {
 		registerDebuggers();
 		linkDebuggersWithServed(served);
 
-		var updateSetting = new NotificationType<{ section: string, value: any, global: boolean; }>("coded/updateSetting");
+		var updateSetting = new NotificationType<{ section: string, value: any, global: boolean; }>('coded/updateSetting');
 		client.onNotification(updateSetting, (arg: { section: string, value: any, global: boolean; }) => {
 			this.hideNextPotentialConfigUpdateWarning();
 			this.settings.set(arg.section, arg.value, arg.global ? ConfigurationTarget.Global : undefined);
 		});
 
-		var logInstall = new NotificationType<string>("coded/logInstall");
+		var logInstall = new NotificationType<string>('coded/logInstall');
 		client.onNotification(logInstall, (message: string) => {
 			this.#output.appendLine(message);
 		});
 
 		const statusBar = new StatusBar(served);
-		client.onNotification("coded/initDubTree", () => {
+		client.onNotification('coded/initDubTree', () => {
 			this.subs.push(statusBar);
-			commands.executeCommand("setContext", "d.hasDubProject", true);
-			this.subs.push(window.registerTreeDataProvider<DubDependency>("dubDependencies", served));
+			commands.executeCommand('setContext', 'd.hasDubProject', true);
+			this.subs.push(window.registerTreeDataProvider<DubDependency>('dubDependencies', served));
 		});
 
-		client.onNotification("coded/updateDubTree", () => {
+		client.onNotification('coded/updateDubTree', () => {
 			served.refreshDependencies();
 		});
 
-		client.onNotification("coded/changedSelectedWorkspace", () => {
-			served.emit("workspace-change");
+		client.onNotification('coded/changedSelectedWorkspace', () => {
+			served.emit('workspace-change');
 			served.refreshDependencies();
 		});
 
-		client.onNotification("coded/skippedLoads", async (roots: string[]) => {
+		client.onNotification('coded/skippedLoads', async (roots: string[]) => {
 			if (typeof roots === 'object' && !Array.isArray(roots)) {
 				roots = (roots as any).roots;
 			}
@@ -336,33 +329,32 @@ export class Extension {
 				}
 			}
 
-			console.log("Asking for late init for projects ", roots, " (allowlist: ", allowList, ", denylist: ", denyList, ")");
+			const btnLoadAll = decidedNum > 0
+				? `Load Remaining (${roots.length - decidedNum})`
+				: roots.length === 1
+					? 'Load'
+					: `Load All (${roots.length})`;
 
-			let btnLoadAll = decidedNum > 0
-				? "Load Remaining (" + (roots.length - decidedNum) + ")"
-				: roots.length == 1
-					? "Load"
-					: "Load All (" + roots.length + ")";
-			let btnSkipAll = decidedNum > 0
-				? "Skip Remaining"
-				: roots.length == 1
-					? "Skip"
-					: "Skip All";
-			let btnInteractive = "More Options...";
-			let msg = "There are too many subprojects in this project according to d.manyProjectsThreshold. Load "
-				+ (roots.length == 1 ? "1 extra project?" : roots.length + " extra projects?")
-				+ (decidedNum > 0 ? ("\n" + (decidedNum == 1 ? "1 project has" : decidedNum + " projects have")
-					+ " been decided on based on d.manyProjects{Allow/Deny}List already.") : "");
-			let result = await window.showInformationMessage(msg,
-				btnLoadAll, btnSkipAll, btnInteractive);
+			const btnSkipAll = decidedNum > 0
+				? 'Skip Remaining'
+				: roots.length === 1
+					? 'Skip'
+					: 'Skip All';
+
+			const btnInteractive = 'More Options...';
+
+			const message = `There are too many subprojects in this project according to d.manyProjectsThreshold. Load ${roots.length == 1 ? '1 extra project?' : `${roots.length} extra projects?`}${decidedNum > 0 ? (`\n${decidedNum == 1 ? '1 project has' : `${decidedNum} projects have`} been decided on based on d.manyProjects{Allow/Deny}List already.`) : ''}`;
+			const selected = await window.showInformationMessage(message, btnLoadAll, btnSkipAll, btnInteractive);
 
 			function setRemaining(b: boolean) {
-				for (let i = 0; i < decisions.length; i++)
-					if (decisions[i] === undefined)
+				for (let i = 0; i < decisions.length; i++) {
+					if (decisions[i] === undefined) {
 						decisions[i] = b;
+					}
+				}
 			}
 
-			switch (result) {
+			switch (selected) {
 				case btnLoadAll:
 					setRemaining(true);
 					break;
@@ -376,18 +368,18 @@ export class Extension {
 					})).concat([
 						{
 							kind: QuickPickItemKind.Separator,
-							label: "Options",
+							label: 'Options',
 							alwaysShow: true,
 						},
 						<any>{
-							_id: "remember",
-							label: "Remember Selection (workspace settings)",
+							_id: 'remember',
+							label: 'Remember Selection (workspace settings)',
 							alwaysShow: true
 						}
 					]), {
 						canPickMany: true,
 						ignoreFocusOut: true,
-						title: "Select projects to load"
+						title: 'Select projects to load'
 					});
 
 					result?.forEach(r => {
@@ -419,7 +411,7 @@ export class Extension {
 						}
 					}
 
-					const save = (result?.findIndex(r => (<any>r)._id == "remember") ?? -1) >= 0;
+					const save = (result?.findIndex(r => (<any>r)._id == 'remember') ?? -1) >= 0;
 
 					if (save) {
 						await this.settings.setManyProjectsAllowList(allowList);
@@ -438,8 +430,8 @@ export class Extension {
 			served.forceLoadProjects(toLoad);
 		});
 
-		client.onNotification("window/logMessage", function (info: { type: MessageType, message: string; }) {
-			if (info.type == MessageType.Log && info.message.startsWith("[progress]")) {
+		client.onNotification('window/logMessage', function (info: { type: MessageType, message: string; }) {
+			if (info.type == MessageType.Log && info.message.startsWith('[progress]')) {
 				let m = /^\[progress\] \[(\d+\.\d+)\] \[(\w+)\](?:\s*(\d+)?\s*(?:\/\s*(\d+))?:\s)?(.*)/.exec(info.message);
 				if (!m) return;
 				const time = parseFloat(m[1]);
@@ -498,7 +490,7 @@ export class Extension {
 			return new Promise<boolean>(async (resolve) => {
 				let aborted = false;
 
-				const stream = await this.#installer.downloadFileInteractive(e.url, e.title || "Dependency Download", () => {
+				const stream = await this.#installer.downloadFileInteractive(e.url, e.title || 'Dependency Download', () => {
 					aborted = true;
 					resolve(false);
 				});
@@ -526,20 +518,20 @@ export class Extension {
 		const version = await this.#installer.findLatestServeD(firstTimeUser || force, releaseChannel);
 
 		let origUpdateFun = version ? (version.asset
-			? this.#installer.installServeD([{ url: version.asset.browser_download_url, title: "Serve-D" }], version.name)
-			: this.#installer.compileServeD((version && version.name != "nightly") ? version.name : undefined))
+			? this.#installer.installServeD([{ url: version.asset.browser_download_url, title: 'Serve-D' }], version.name)
+			: this.#installer.compileServeD((version && version.name != 'nightly') ? version.name : undefined))
 			: this.#installer.updateAndInstallServeD;
 
 		let updateFun = origUpdateFun;
 
-		updateFun = async (env: NodeJS.ProcessEnv): Promise<boolean | undefined | "retry"> => {
-			let [isBlocked, lock] = await this.acquireInstallLock("serve-d");
+		updateFun = async (env: NodeJS.ProcessEnv): Promise<boolean | undefined | 'retry'> => {
+			let [isBlocked, lock] = await this.acquireInstallLock('serve-d');
 			try {
 				this.subs.push(lock);
 
 				if (isBlocked) {
-					return await this.waitForOtherInstanceInstall("serve-d", force)
-						.then((doUpdate) => doUpdate ? origUpdateFun(env) : "retry");
+					return await this.waitForOtherInstanceInstall('serve-d', force)
+						.then((doUpdate) => doUpdate ? origUpdateFun(env) : 'retry');
 				}
 
 				return await origUpdateFun(env);
@@ -550,9 +542,9 @@ export class Extension {
 			}
 		};
 
-		let upToDate = await this.checkProgram(force, "servedPath", "serve-d", "serve-d",
+		let upToDate = await this.checkProgram(force, 'servedPath', 'serve-d', 'serve-d',
 			(env: any) => updateFun(env),
-			version ? (version.asset ? "Download" : "Compile") : "Install", this.isServedOutdated(version));
+			version ? (version.asset ? 'Download' : 'Compile') : 'Install', this.isServedOutdated(version));
 
 		if (upToDate == null) {
 			return false; /* user dismissed install dialogs, don't continue startup */
@@ -569,20 +561,23 @@ export class Extension {
 		if (!globals.greetedNewCodeDUser) {
 			await globals.setGreetedNewCodeDUser(true);
 			await globals.setLastCheckedCodedVersion(this.version);
-			await commands.executeCommand("workbench.action.openWalkthrough", "webfreak.dlang#welcome");
+			await commands.executeCommand('workbench.action.openWalkthrough', 'webfreak.dlang#welcome');
 		} else if (this.version) {
 			if (globals.lastCheckedCodedVersion !== this.version) {
 				await globals.setLastCheckedCodedVersion(this.version);
 
 				if (this.settings.showUpdateChangelogs) {
-					commands.executeCommand("markdown.showPreview", Uri.file(this.context.asAbsolutePath("CHANGELOG.md")), { locked: true });
-					let disableChangelog = "Never show changelog";
-					let close = "Close";
-					window.showInformationMessage("Welcome to dlang " + this.version + "! See what has changed since " + (globals.lastCheckedCodedVersion || "last version") + "...", disableChangelog, close).then(action => {
-						if (action == disableChangelog) {
-							this.settings.setShowUpdateChangelogs(false);
-						}
-					});
+					commands.executeCommand('markdown.showPreview', Uri.file(this.context.asAbsolutePath('CHANGELOG.md')), { locked: true });
+
+					const disableChangelog = 'Never show changelog';
+					const close = 'Close';
+
+					const message = `Welcome to dlang ${this.version}! See what has changed since ${globals.lastCheckedCodedVersion ?? 'last version'}...`;
+					const selected = await window.showInformationMessage(message, disableChangelog, close)
+
+					if (selected === disableChangelog) {
+						this.settings.setShowUpdateChangelogs(false);
+					}
 				}
 			}
 		}
@@ -605,8 +600,8 @@ export class Extension {
 			if (!this.#compiler.name || !this.#compiler.path) {
 				return false;
 			} else {
-				let ext = process.platform == "win32" ? ".exe" : "";
-				return await this.checkDub(join(dirname(this.#compiler.path), "dub" + ext), true);
+				const ext = process.platform == 'win32' ? '.exe' : '';
+				return await this.checkDub(join(dirname(this.#compiler.path), `dub${ext}`), true);
 			}
 		}
 
@@ -623,33 +618,38 @@ export class Extension {
 		configName: string,
 		defaultPath: string,
 		name: string,
-		installFunc: (env: NodeJS.ProcessEnv) => Thenable<boolean | undefined | "retry">,
+		installFunc: (env: NodeJS.ProcessEnv) => Thenable<boolean | undefined | 'retry'>,
 		btn: string,
 		outdatedCheck?: (log: string) => (boolean | [boolean, string])
-	): Promise<boolean | undefined | "retry"> {
-		var version = "";
+	): Promise<boolean | undefined | 'retry'> {
+		var version = '';
 
 		try {
-			version = await this.spawnOneShotCheck(expandTilde(this.settings.get(configName, defaultPath)), ["--version"], true, { cwd: workspace.rootPath });
+			version = await this.spawnOneShotCheck(expandTilde(this.settings.get(configName, defaultPath)), ['--version'], true, { cwd: workspace.rootPath });
 		} catch (err: any) {
 			// for example invalid executable error
-			if (err && err.code != "ENOENT")
+			if (err && err.code !== 'ENOENT') {
 				console.error(err);
+			}
 
-			const fullConfigName = "d." + configName;
-			if (btn == "Install" || btn == "Download") btn = "Reinstall";
-			const reinstallBtn = btn + " " + name;
-			const userSettingsBtn = "Open User Settings";
+			const fullConfigName = `d.${configName}`;
+
+			if (btn === 'Install' || btn === 'Download') {
+				btn = 'Reinstall';
+			}
+
+			const reinstallBtn = `${btn} ${name}`;
+			const userSettingsBtn = 'Open User Settings';
 
 			let defaultHandler = (s: string | undefined) => {
 				if (s == userSettingsBtn) {
-					commands.executeCommand("workbench.action.openGlobalSettings");
+					commands.executeCommand('workbench.action.openGlobalSettings');
 				} else if (s == reinstallBtn) {
 					return installFunc(process.env);
 				}
 			};
 
-			if (err && err.code == "ENOENT") {
+			if (err && err.code === 'ENOENT') {
 				if (this.settings.aggressiveUpdate && !forced) {
 					return installFunc(process.env);
 				} else {
@@ -661,17 +661,17 @@ export class Extension {
 					} catch (e) { }
 
 					if (isDirectory) {
-						return window.showErrorMessage(name + " from setting " + fullConfigName + " points to a directory", reinstallBtn, userSettingsBtn).then(defaultHandler);
+						return window.showErrorMessage(`${name} from setting ${fullConfigName} points to a directory`, reinstallBtn, userSettingsBtn).then(defaultHandler);
 					} else {
-						return window.showErrorMessage(name + " from setting " + fullConfigName + " is not installed or couldn't be found", reinstallBtn, userSettingsBtn).then(defaultHandler);
+						return window.showErrorMessage(`${name} from setting ${fullConfigName} is not installed or couldn't be found`, reinstallBtn, userSettingsBtn).then(defaultHandler);
 					}
 				}
-			} else if (err && err.code == "EACCES") {
-				return window.showErrorMessage(name + " from setting " + fullConfigName + " is not marked as executable or is in a non-executable directory.", reinstallBtn, userSettingsBtn).then(defaultHandler);
+			} else if (err && err.code === 'EACCES') {
+				return window.showErrorMessage(`${name} from setting ${fullConfigName} is not marked as executable or is in a non-executable directory.`, reinstallBtn, userSettingsBtn).then(defaultHandler);
 			} else if (err && err.code) {
-				return window.showErrorMessage(name + " from setting " + fullConfigName + " failed executing: " + err.code, reinstallBtn, userSettingsBtn).then(defaultHandler);
+				return window.showErrorMessage(`${name} from setting ${fullConfigName} failed executing: ${err.code}`, reinstallBtn, userSettingsBtn).then(defaultHandler);
 			} else if (err) {
-				return window.showErrorMessage(name + " from setting " + fullConfigName + " failed executing: " + err, reinstallBtn, userSettingsBtn).then(defaultHandler);
+				return window.showErrorMessage(`${name} from setting ${fullConfigName} failed executing: ${err}`, reinstallBtn, userSettingsBtn).then(defaultHandler);
 			}
 
 			return false;
@@ -681,7 +681,7 @@ export class Extension {
 		let isOutdated: boolean = false;
 		let msg: string | undefined;
 
-		if (typeof outdatedResult == "boolean") {
+		if (typeof outdatedResult === 'boolean') {
 			isOutdated = outdatedResult;
 		} else if (Array.isArray(outdatedResult)) {
 			[isOutdated, msg] = outdatedResult;
@@ -691,11 +691,11 @@ export class Extension {
 			if (this.settings.aggressiveUpdate) {
 				return await installFunc(process.env);
 			} else {
-				let s = await window.showErrorMessage(name + " is outdated. " + (msg || ""), btn + " " + name, "Continue Anyway");
+				const selected = await window.showErrorMessage(`${name} is outdated. ${msg ?? ''}`, `${btn} ${name}`, 'Continue Anyway');
 
-				if (s == "Continue Anyway") {
+				if (selected === 'Continue Anyway') {
 					return false;
-				} else if (s == btn + " " + name) {
+				} else if (selected === `${btn} ${name}`) {
 					return await installFunc(process.env);
 				}
 
@@ -721,17 +721,17 @@ export class Extension {
 
 		return (log: string) => {
 			if (this.settings.forceUpdateServeD) {
-				return [true, "(forced by d.forceUpdateServeD)"];
+				return [true, '(forced by d.forceUpdateServeD)'];
 			}
 
 			if (!current || !current.asset) {
 				return false; // network failure or frozen release channel, let's not bother the user
-			} else if (current.name == "nightly") {
+			} else if (current.name === 'nightly') {
 				let date = new Date(current.asset.created_at);
 				let installed = this.#installer.extractServedBuiltDate(log);
 
 				if (!installed) {
-					return [true, "(target=nightly, installed=none)"];
+					return [true, '(target=nightly, installed=none)'];
 				}
 
 				date.setUTCHours(0);
@@ -748,22 +748,23 @@ export class Extension {
 			const releaseChannel = this.settings.releaseChannel;
 
 			if (globals.serveDDownloadedReleaseChannel && releaseChannel != globals.serveDDownloadedReleaseChannel) {
-				return [true, "(target channel=" + releaseChannel + ", installed channel=" + globals.serveDDownloadedReleaseChannel + ")"];
+				return [true, `(target channel=${releaseChannel}, installed channel=${globals.serveDDownloadedReleaseChannel})`];
 			}
 
-			var m = /serve-d v(\d+\.\d+\.\d+(?:-[-.a-zA-Z0-9]+)?)/.exec(log);
+			const regex = /serve-d v(\d+\.\d+\.\d+(?:-[-.a-zA-Z0-9]+)?)/;
+
 			var target = current.name;
-
-			if (target.startsWith("v")) {
-				target = target.substr(1);
+			if (target.startsWith('v')) {
+				target = target.substring(1);
 			}
 
-			if (m) {
+			const match = regex.exec(log);
+			if (match != null) {
 				try {
-					return [cmpSemver(m[1], target) < 0, "(target=" + target + ", installed=" + m[1] + ")"];
+					return [cmpSemver(match[1], target) < 0, `(target=${target}, installed=${match[1]})`];
 				} catch (e: any) {
 					this.#output.show(true);
-					this.#output.appendLine("ERROR: could not compare current serve-d version with release");
+					this.#output.appendLine('ERROR: could not compare current serve-d version with release');
 					this.#output.appendLine(e.toString());
 				}
 			}
@@ -777,62 +778,60 @@ export class Extension {
 	}
 
 	async acquireInstallLock(depName: string): Promise<[boolean, Disposable]> {
-		const globals = this.#globals;
-
-		if (this.lockIsStillAcquired(globals.isInstallInProgress(depName))) {
+		if (this.lockIsStillAcquired(this.#globals.isInstallInProgress(depName))) {
 			return [false, new Disposable(() => { })];
 		} else {
-			globals.setInstallInProgress(depName, new Date().getTime());
+			this.#globals.setInstallInProgress(depName, new Date().getTime());
 
 			const timer = setInterval(() => {
-				globals.setInstallInProgress(depName, new Date().getTime());
+				this.#globals.setInstallInProgress(depName, new Date().getTime());
 			}, 2000);
 
 			return [true, new Disposable(() => {
-				globals.setInstallInProgress(depName, false);
+				this.#globals.setInstallInProgress(depName, false);
 				clearInterval(timer);
 			})];
 		}
 	}
 
 	async waitForOtherInstanceInstall(depName: string, forced: boolean, showProgress: boolean = true): Promise<boolean> {
-		const context = this.#context;
-
 		// XXX: horrible polling code here because there is no other IPC API for vscode extensions
-		const installInProgress = "installInProgress-" + depName;
-		var lock = context.globalState.get(installInProgress, undefined);
+		const installInProgress = `installInProgress-${depName}`;
+		var lock = this.#context.globalState.get(installInProgress, undefined);
+
 		if (this.lockIsStillAcquired(lock)) {
 			if (forced) {
-				let ret = new Promise<boolean>((resolve) => {
+				const ret = new Promise<boolean>((resolve) => {
 					setTimeout(() => {
 						resolve(this.waitForOtherInstanceInstall(depName, true, false));
 					}, 1000);
 				});
 
-				if (showProgress)
+				if (showProgress) {
 					return window.withProgress<boolean>({
 						location: ProgressLocation.Window,
-						title: "Waiting for other VSCode window installing " + depName + "..."
-					}, (progress, token) => ret);
-				else
+						title: `Waiting for other VSCode window installing ${depName}...`
+					}, (_progress, _token) => ret);
+				} else {
 					return ret;
+				}
 			} else {
-				let continueAnyway = "Continue Anyway";
-				let wait = "Wait";
-				let btn = await window.showWarningMessage("It looks like there is another vscode instance already installing "
-					+ depName + ". Click '" + continueAnyway + "' if you are sure there is no other vscode instance installing "
-					+ depName + " right now.",
-					continueAnyway,
-					wait);
-				if (!btn || btn == wait) {
+				const continueAnyway = 'Continue Anyway';
+				const wait = 'Wait';
+
+				const message = `It looks like there is another vscode instance already installing ${depName}. Click '${continueAnyway}' if you are sure there is no other vscode instance installing ${depName} right now.`;
+				const selected = await window.showWarningMessage(message, continueAnyway, wait);
+
+				if (!selected || selected === wait) {
 					return this.waitForOtherInstanceInstall(depName, true);
-				} else if (btn == continueAnyway) {
+				} else if (selected === continueAnyway) {
 					return true;
 				} else {
-					throw new Error("unexpected button");
+					throw new Error('unexpected button');
 				}
 			}
 		}
+
 		return false;
 	}
 
@@ -899,7 +898,7 @@ export class Extension {
 const extension = new Extension();
 export default extension;
 
-export type DScannerIniFeature = { description: string, name: string, enabled: "disabled" | "enabled" | "skip-unittest"; };
+export type DScannerIniFeature = { description: string, name: string, enabled: 'disabled' | 'enabled' | 'skip-unittest'; };
 export type DScannerIniSection = { description: string, name: string, features: DScannerIniFeature[]; };
 export interface ActiveDubConfig {
 	packagePath: string;
