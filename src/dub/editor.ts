@@ -136,7 +136,7 @@ export default class DubEditor implements CustomTextEditorProvider {
 		for (; i < arg.path.length - 1; i++) {
 			let part = arg.path[i];
 			if (part[0] === ':') {
-				let [key, value] = part.substr(1).split('=', 2);
+				let [key, value] = part.substring(1).split('=', 2);
 				// find "key": value in json
 				if (scope.type === 'property' && scope.children) {
 					scope = scope.children[1];
@@ -146,7 +146,7 @@ export default class DubEditor implements CustomTextEditorProvider {
 					for (let i = 0; i < scope.children.length; i++) {
 						const child = scope.children[i];
 						let match = findChildNodeByKey(child, key);
-						if (match && match.children && match.children[1].value == value) {
+						if (match && match.children && match.children[1].value === value) {
 							scope = child;
 							break;
 						}
@@ -261,7 +261,7 @@ function getNodeIndentation(document: TextDocument, node?: jsonc.Node): string {
 		const whitespaceRegex = /\s/;
 		for (let i = indent.length - 1; i >= 0; i--) {
 			if (!whitespaceRegex.exec(indent[i])) {
-				indent = indent.substr(i + 1);
+				indent = indent.substring(i + 1);
 				break;
 			}
 		}

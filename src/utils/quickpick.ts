@@ -31,13 +31,13 @@ export default function showQuickPickWithInput<T>(items: T[] | Thenable<T[]>, op
 			input.label = quickPick.value;
 			let i = quickPick.items.indexOf(input);
 			if (quickPick.value) {
-				if (i == -1) {
+				if (i === -1) {
 					quickPick.items = [input as QuickPickItem].concat(quickPick.items);
 				} else {
 					quickPick.items = quickPick.items;
 				}
 			} else {
-				if (i != -1) {
+				if (i !== -1) {
 					quickPick.items = quickPick.items.slice(0, i).concat(quickPick.items.slice(i + 1));
 				}
 			}

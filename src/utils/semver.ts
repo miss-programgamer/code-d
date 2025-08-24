@@ -31,7 +31,7 @@ export function cmpSemver(v1: string | SimpleSemver, v2: string | SimpleSemver):
 		}
 	}
 
-	if (v1[3].length == v2[3].length) {
+	if (v1[3].length === v2[3].length) {
 		return 0;
 	} else if (v1[3].length < v2[3].length) {
 		return -1;

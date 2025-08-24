@@ -57,8 +57,8 @@ export class DubJSONContribution implements IJSONContribution {
 
 		if (location.isAtPropertyKey) {
 			currentWord = location.previousNode?.value || currentWord;
-			// complete in { 'dependencies': {...} } - path == ['...root', 'dependencies', '']
-			// but not in { 'dependencies': { 'vibe-d': {...} }} - path == ['...root', 'dependencies', 'vibe-d', '']
+			// complete in { 'dependencies': {...} } - path === ['...root', 'dependencies', '']
+			// but not in { 'dependencies': { 'vibe-d': {...} }} - path === ['...root', 'dependencies', 'vibe-d', '']
 			try {
 				if (location.path[location.path.length - 2] === 'dependencies') {
 					items = await this.collectDependencyPropertySuggestions(currentWord);
@@ -106,7 +106,7 @@ export class DubJSONContribution implements IJSONContribution {
 	protected async collectDependencyPropertySuggestions(currentWord: string): Promise<PropertyCompletionItem[]> {
 		let colonIdx = currentWord.indexOf(':');
 		let ret: CompletionItem[] = [];
-		if (colonIdx != -1) {
+		if (colonIdx !== -1) {
 			const pkgName = currentWord.substring(0, colonIdx);
 			const info = await getLatestPackageInfo(pkgName);
 			try {
@@ -187,8 +187,8 @@ export class DubJSONContribution implements IJSONContribution {
 						items.push(item);
 					}
 					items.sort((a, b) => cmpSemver(
-						typeof b.label == 'string' ? b.label : b.label.label,
-						typeof a.label == 'string' ? a.label : a.label.label
+						typeof b.label === 'string' ? b.label : b.label.label,
+						typeof a.label === 'string' ? a.label : a.label.label
 					));
 					for (let i = 0; i < items.length; i++) {
 						items[i].sortText = (10000000 + i).toString(); // lazy 0 pad

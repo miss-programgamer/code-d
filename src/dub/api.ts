@@ -99,13 +99,13 @@ export async function getLatestPackageInfo(pkg: string): Promise<{ description?:
 }
 
 export async function autoCompletePath(fileName: string, key: string, currentValue: string, addResult: (v: CompletionItem) => any): Promise<any> {
-	let folderOnly = ['path', 'targetPath', 'sourcePaths', 'stringImportPaths', 'importPaths'].indexOf(key) != -1;
-	let fileRegex = ['copyFiles'].indexOf(key) != -1 ? null : /\.di?$/i;
+	let folderOnly = ['path', 'targetPath', 'sourcePaths', 'stringImportPaths', 'importPaths'].indexOf(key) !== -1;
+	let fileRegex = ['copyFiles'].indexOf(key) !== -1 ? null : /\.di?$/i;
 
 	if (currentValue !== '') {
 		let end = currentValue.lastIndexOf('/');
-		if (end != -1) {
-			currentValue = currentValue.substr(0, end);
+		if (end !== -1) {
+			currentValue = currentValue.substring(0, end);
 		}
 	}
 
@@ -113,7 +113,7 @@ export async function autoCompletePath(fileName: string, key: string, currentVal
 	const files = await readdir(dir, { withFileTypes: true });
 
 	for (const file of files) {
-		if (file.name[0] == '.') {
+		if (file.name[0] === '.') {
 			return;
 		}
 

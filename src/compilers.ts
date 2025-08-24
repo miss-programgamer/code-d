@@ -45,7 +45,7 @@ export async function setupCompilersUI() {
 	const compilers: DetectedCompiler[] = await listCompilers();
 	let items: UIQuickPickItem[] = [];
 	for (let i = 0; i < compilers.length; i++) {
-		if (i == 0) {
+		if (i === 0) {
 			items.push({
 				label: '$(find-expanded) Detected installations',
 				kind: QuickPickItemKind.Separator,
@@ -77,7 +77,7 @@ export async function setupCompilersUI() {
 		description: 'The reference D compiler ・ latest features, fast compilation'
 	});
 
-	if (compilers.length == 0) {
+	if (compilers.length === 0) {
 		dmdItem.detail = '$(getting-started-beginner) Recommended for beginners';
 	}
 
@@ -155,7 +155,7 @@ export async function setupCompilersUI() {
 						{ label: 'View Project website', website: 'https://gdcproject.org/downloads' },
 						{ platform: 'win32', label: 'Install through WinLibs', website: 'https://winlibs.com' },
 						// no install.sh for GDC because the version is ancient! (installing gcc 4.8.5, FE 2.068.2)
-						// { platform: () => isGlobalInstallSh() && process.platform == 'linux', label: 'Portable install (in existing ~/dlang)', installSh: 'install gdc,dub', global: true },
+						// { platform: () => isGlobalInstallSh() && process.platform === 'linux', label: 'Portable install (in existing ~/dlang)', installSh: 'install gdc,dub', global: true },
 						// { platform: 'linux', label: 'Portable install', installSh: 'install gdc,dub' },
 						{ platform: 'linux', label: 'System install', command: 'pacman -S gcc-d dub', binTest: 'pacman' },
 						{ platform: 'linux', label: 'System install', command: 'apt install gdc', binTest: 'apt' },
@@ -184,7 +184,7 @@ export function makeCompilerDescription(compiler: DetectedCompiler): string | un
 		}
 	}
 
-	if (compiler.frontendVersion && compiler.frontendVersion != compiler.version) {
+	if (compiler.frontendVersion && compiler.frontendVersion !== compiler.version) {
 		versionStrings.push(`spec version ${compiler.frontendVersion}`);
 	}
 
@@ -224,7 +224,7 @@ async function doManualSelect(): Promise<void> {
 			const message = 'Could not detect compiler type from executable name (tested for DMD, LDC and GDC) - make sure you open the compiler executable and name it correctly!';
 			const selected = await window.showErrorMessage(message, tryAgain);
 
-			if (selected == tryAgain) {
+			if (selected === tryAgain) {
 				doManualSelect();
 			}
 		} else {
@@ -236,7 +236,7 @@ async function doManualSelect(): Promise<void> {
 				const message = 'The selected file was not executable or did not work with. Is the selected file a DMD, LDC or GDB executable?';
 				const selected = await window.showErrorMessage(message, tryAgain);
 
-				if (selected == tryAgain) {
+				if (selected === tryAgain) {
 					doManualSelect();
 				}
 
@@ -287,7 +287,7 @@ async function showCompilerInstallationPrompt(name: string, buttons: (InstallBut
 				if (!button.platform()) {
 					continue;
 				}
-			} else if (process.platform != button.platform) {
+			} else if (process.platform !== button.platform) {
 				continue;
 			}
 		}
@@ -334,7 +334,7 @@ async function showCompilerInstallationPrompt(name: string, buttons: (InstallBut
 				const link = (<LabelDownloadButton>selection).downloadAndRun;
 				const outputFolder = extension.installer.determineOutputFolder();
 				const fileLocation = link.lastIndexOf('/');
-				const outputFilename = fileLocation == -1 ? 'compiler_dl.exe' : link.substring(fileLocation + 1);
+				const outputFilename = fileLocation === -1 ? 'compiler_dl.exe' : link.substring(fileLocation + 1);
 				const dstFile = path.join(outputFolder, outputFilename);
 
 				let aborted = false;
@@ -347,7 +347,7 @@ async function showCompilerInstallationPrompt(name: string, buttons: (InstallBut
 						const message = 'Executable is ready for install!';
 						const selected = await window.showInformationMessage(message, installBtn);
 
-						if (selected == installBtn) {
+						if (selected === installBtn) {
 							try {
 								let spawnProc = dstFile;
 								let args: string[] | undefined;
@@ -378,7 +378,7 @@ async function showCompilerInstallationPrompt(name: string, buttons: (InstallBut
 								const message = 'When finished installing, reload the window and setup the compiler in the getting started guide.';
 								const selected = await window.showInformationMessage(message, reloadBtn);
 
-								if (selected == reloadBtn) {
+								if (selected === reloadBtn) {
 									await commands.executeCommand('workbench.action.openWalkthrough', 'webfreak.dlang#welcome');
 									commands.executeCommand('workbench.action.reloadWindow');
 								}
@@ -400,7 +400,7 @@ async function showCompilerInstallationPrompt(name: string, buttons: (InstallBut
 	});
 
 	installPrompt.onDidTriggerButton(async (e) => {
-		if (e == QuickInputButtons.Back) {
+		if (e === QuickInputButtons.Back) {
 			await setupCompilersUI();
 			installPrompt.hide();
 		}
@@ -429,7 +429,7 @@ export async function showDetectedCompilerInstallPrompt(compiler: DetectedCompil
 	});
 
 	installPrompt.onDidTriggerButton(async (e) => {
-		if (e == QuickInputButtons.Back) {
+		if (e === QuickInputButtons.Back) {
 			await setupCompilersUI();
 			installPrompt.hide();
 		}
@@ -480,7 +480,7 @@ export function makeCompilerInstallButtons(compiler: DetectedCompiler): [UIQuick
 		)));
 	}
 
-	if (compiler.name == 'dmd') {
+	if (compiler.name === 'dmd') {
 		items.push(makeSettingButton(
 			'Enable import timing code lens',
 			[['dmdPath', compiler.path], ['enableDMDImportTiming', true]],
@@ -503,10 +503,13 @@ export async function checkCompilers(): Promise<DetectedCompiler> {
 		const compiler = compilers[i];
 		if (compiler.name) {
 			function isBetterVer(vs: number) {
-				if (vs == -1) return true;
-				var a = compilers[i].frontendVersion ?? compilers[i].version ?? '0';
-				var b = compilers[vs].frontendVersion ?? compilers[vs].version ?? '0';
-				return cmpVerGeneric(a, b) > 0;
+				if (vs !== -1) {
+					var a = compilers[i].frontendVersion ?? compilers[i].version ?? '0';
+					var b = compilers[vs].frontendVersion ?? compilers[vs].version ?? '0';
+					return cmpVerGeneric(a, b) > 0;
+				} else {
+					return true;
+				}
 			}
 			switch (compiler.name) {
 				case 'dmd': if (isBetterVer(dmdIndex)) dmdIndex = i; break;
@@ -518,11 +521,11 @@ export async function checkCompilers(): Promise<DetectedCompiler> {
 		fallbackPath = fallbackPath || compiler.path;
 	}
 
-	if (dmdIndex != -1) {
+	if (dmdIndex !== -1) {
 		return compilers[dmdIndex];
-	} else if (ldcIndex != -1) {
+	} else if (ldcIndex !== -1) {
 		return compilers[ldcIndex];
-	} else if (gdcIndex != -1) {
+	} else if (gdcIndex !== -1) {
 		return compilers[gdcIndex];
 	} else {
 		return { name: false, path: fallbackPath };
@@ -846,7 +849,7 @@ async function testBinExists(name: string): Promise<string | false> {
 	try {
 		let founds = await which(name, { all: true });
 
-		if (process.platform === 'win32' && (name.toUpperCase() == 'BASH' || name.toUpperCase() == 'BASH.EXE')) {
+		if (process.platform === 'win32' && (name.toUpperCase() === 'BASH' || name.toUpperCase() === 'BASH.EXE')) {
 			if (fs.existsSync(win32GitBashPath)) {
 				return binExistsCache[name] = win32GitBashPath;
 			}

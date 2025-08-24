@@ -56,7 +56,7 @@ export function getLocationInfo(document: TextDocument, position: Position): SDL
 						});
 				});
 		});
-		if (prevCur != current.length) {
+		if (prevCur !== current.length) {
 			findContext();
 		}
 	})();
@@ -72,7 +72,7 @@ export function getLocationInfo(document: TextDocument, position: Position): SDL
 		values.forEach((value, i) => {
 			if (pos >= value.ownerRange[0] && pos < value.ownerRange[1]) {
 				if (value.type === 'none') {
-					if (value.range[0] == value.range[1]) {
+					if (value.range[0] === value.range[1]) {
 						locationType = 'attribute';
 					} else {
 						locationType = 'value';
@@ -95,7 +95,7 @@ export function getLocationInfo(document: TextDocument, position: Position): SDL
 				namespaceStack.push(value.namespace);
 				nameStack.push(attribName ?? '');
 				valueContent = value;
-				partialContent = valueContent.value.substr(0, value.range[0] - pos);
+				partialContent = valueContent.value.substring(0, value.range[0] - pos);
 				valueIndex = i;
 			}
 		});

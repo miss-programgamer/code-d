@@ -330,7 +330,7 @@ class DDebugProvider implements DebugConfigurationProvider {
 		var dubconfig = await this.served?.getActiveDubConfig();
 
 		var hasCDebugInfo = (dubconfig?.buildOptions?.indexOf('debugInfoC') ?? -1) !== -1
-			|| (dubconfig?.dflags?.indexOf('-gc') ?? -1) != -1;
+			|| (dubconfig?.dflags?.indexOf('-gc') ?? -1) !== -1;
 
 		var isSDL = dubconfig?.recipePath?.endsWith('.sdl') ?? false;
 
@@ -357,7 +357,7 @@ class DDebugProvider implements DebugConfigurationProvider {
 			}
 
 			if (button === edit) {
-				if (dubconfig?.recipePath == undefined) {
+				if (dubconfig?.recipePath == null) {
 					throw new Error('Unable to open recipe, please open manually');
 				} else {
 					const docPath = dubconfig.recipePath;
@@ -416,7 +416,7 @@ class DDebugProvider implements DebugConfigurationProvider {
 			let finished = false;
 
 			let waiter = tasks.onDidEndTask((e) => {
-				if (!finished && e.execution.task.definition._id == task.definition._id) {
+				if (!finished && e.execution.task.definition._id === task.definition._id) {
 					setTimeout(() => {
 						if (!finished) {
 							finished = true;
@@ -429,11 +429,11 @@ class DDebugProvider implements DebugConfigurationProvider {
 			});
 
 			let procWaiter = tasks.onDidEndTaskProcess((e) => {
-				if (!finished && e.execution.task.definition._id == task.definition._id) {
+				if (!finished && e.execution.task.definition._id === task.definition._id) {
 					finished = true;
 					waiter.dispose();
 					procWaiter.dispose();
-					done(typeof e.exitCode == 'undefined' ? -1 : e.exitCode);
+					done(e.exitCode == null ? -1 : e.exitCode);
 				}
 			});
 

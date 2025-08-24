@@ -51,7 +51,7 @@ export async function registerCommands() {
 				const path = workspace.workspaceFolders[0].uri.path;
 				const files = await readdir(path);
 
-				if (files.length == 0) {
+				if (files.length === 0) {
 					performTemplateCopy(id, template.dub, path, () => {
 						commands.executeCommand('workbench.action.reloadWindow');
 					});
@@ -232,7 +232,7 @@ async function openDubOnDpldocsCommand(root: DubDependency) {
 
 	const colonIdx = name.indexOf(':');
 	if (colonIdx !== -1) {
-		name = name.substr(0, colonIdx); // strip subpackage
+		name = name.substring(0, colonIdx); // strip subpackage
 		version = undefined; // versions are invalid for subpackages
 	}
 
@@ -256,9 +256,9 @@ async function createProjectCommand(behavior: CreateProjectBehavior, root?: stri
 
 				const btn = await window.showErrorMessage('No viewable files found.', browseBtn, openRecipe);
 
-				if (btn == browseBtn) {
+				if (btn === browseBtn) {
 					commands.executeCommand('code-d.openDependencyFile', root);
-				} else if (btn == openRecipe) {
+				} else if (btn === openRecipe) {
 					commands.executeCommand('code-d.openDubRecipe', root);
 				}
 			} else {
@@ -329,7 +329,7 @@ async function createProjectCommand(behavior: CreateProjectBehavior, root?: stri
 
 		let args: [string, boolean] | undefined;
 
-		if (items.length == 1) {
+		if (items.length === 1) {
 			args = items[0].args;
 		} else {
 			args = (await window.showQuickPick(items, {

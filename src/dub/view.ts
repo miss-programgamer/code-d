@@ -12,7 +12,7 @@ export class DubDependency extends TreeItem {
 	constructor(info: DubDependencyInfo | string, command?: Command, icon?: string) {
 		super(dependencyLabel(info), dependencyCollapse(info));
 
-		if (typeof info == 'object') {
+		if (typeof info === 'object') {
 			this.info = info;
 
 			this.iconPath = {
@@ -53,7 +53,7 @@ function dependencyLabel(info: DubDependencyInfo | string) {
 }
 
 function dependencyCollapse(info: DubDependencyInfo | string) {
-	return typeof info == 'string'
+	return typeof info === 'string'
 		? TreeItemCollapsibleState.None
 		: TreeItemCollapsibleState.Collapsed;
 }

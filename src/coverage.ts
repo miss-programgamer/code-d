@@ -84,7 +84,7 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 
 				for (var i = 0; i < lines.length; i++) {
 					var line = lines[i];
-					if (line.trim().length == 0) {
+					if (line.trim().length === 0) {
 						continue;
 					}
 
@@ -162,7 +162,7 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 				searchOffset = 0;
 				for (; lineIndex + searchOffset < lineCount && searchOffset < maxLineSkip + cache[i].offsetAdd; searchOffset++) {
 					var line = editor.document.lineAt(lineIndex + searchOffset);
-					if (line.text.trim() == cache[i].trimmedLine) {
+					if (line.text.trim() === cache[i].trimmedLine) {
 						if (cache[i].hits > 0)
 							covRanges.push(line.range);
 						else

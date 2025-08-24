@@ -44,40 +44,40 @@ var stringWhitespaceChar = /[^\S\n]/;
 function parseStringLiteral(sdl: string) {
 	if (sdl.length < 2) {
 		return null;
-	} else if (sdl[0] == '`') {
+	} else if (sdl[0] === '`') {
 		var match = wysiwygString.exec(sdl);
 		if (match) {
 			return { string: match[1], length: match[0].length };
 		} else {
 			return { string: sdl.substring(1), length: sdl.length };
 		}
-	} else if (sdl[0] == '"') {
+	} else if (sdl[0] === '"') {
 		var str = '';
 		var skipWhitespace = false;
 		var escape = false;
 		for (var i = 1; i < sdl.length; i++) {
 			if (escape) {
 				skipWhitespace = false;
-				if (sdl[i] == '"') {
+				if (sdl[i] === '"') {
 					str += '"';
-				} else if (sdl[i] == '\\') {
+				} else if (sdl[i] === '\\') {
 					str += '\\';
-				} else if (sdl[i] == 'n') {
+				} else if (sdl[i] === 'n') {
 					str += '\n';
-				} else if (sdl[i] == 'r') {
+				} else if (sdl[i] === 'r') {
 					str += '\r';
-				} else if (sdl[i] == 't') {
+				} else if (sdl[i] === 't') {
 					str += '\t';
-				} else if (sdl[i] == ' ') {
+				} else if (sdl[i] === ' ') {
 					str += ' ';
-				} else if (sdl[i] == '\n') {
+				} else if (sdl[i] === '\n') {
 					skipWhitespace = true;
 				}
 				escape = false;
 			} else {
-				if (sdl[i] == '\\') {
+				if (sdl[i] === '\\') {
 					escape = true;
-				} else if (sdl[i] == '"') {
+				} else if (sdl[i] === '"') {
 					return { string: str, length: i + 1 };
 				} else {
 					if (skipWhitespace && stringWhitespaceChar.exec(sdl[i])) {
@@ -117,7 +117,7 @@ export function tokenizeSDL(sdl: string) {
 		var startLen = sdl.length;
 		index = original.length - sdl.length;
 
-		if (sdl.substring(0, 64) != original.substring(index, 64)) {
+		if (sdl.substring(0, 64) !== original.substring(index, 64)) {
 			throw `Faulty index.\nRemaining: '${sdl.substring(0, 64)}'\nAccording to index: '${original.substring(index, 64)}'`;
 		}
 
@@ -160,11 +160,11 @@ export function tokenizeSDL(sdl: string) {
 			sdl = sdl.substring(match[0].length);
 		} else if (match = identifier.exec(sdl)) {
 			if (sdl.length > 0) {
-				if (sdl[match[0].length] == ':') {
+				if (sdl[match[0].length] === ':') {
 					tokens.push({ type: 'namespace', range: [index, index + match[0].length + 1], namespace: match[1] });
 					sdl = sdl.substring(match[0].length + 1);
 					continue;
-				} else if (sdl[match[0].length] == '=') {
+				} else if (sdl[match[0].length] === '=') {
 					attributeName = match[1];
 					attributeRange = [index, index + match[0].length + 1];
 					isAttribute = true;
@@ -223,7 +223,7 @@ export function tokenizeSDL(sdl: string) {
 
 	tokens.push({ type: 'end', marker: original.length });
 
-	/*if (tokens.length >= 2 && tokens[tokens.length - 1].type == 'end' && tokens[tokens.length - 2].type == 'end') {
+	/*if (tokens.length >= 2 && tokens[tokens.length - 1].type === 'end' && tokens[tokens.length - 2].type === 'end') {
 		if (tokens[tokens.length - 2].marker < tokens[tokens.length - 1].marker)
 			tokens[tokens.length - 2].marker = tokens[tokens.length - 1].marker;
 		tokens.pop();

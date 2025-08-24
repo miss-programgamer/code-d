@@ -13,7 +13,7 @@ export default async function openTextDocument(uri: Uri, lineOrRange: null | num
 	const editor = await window.showTextDocument(doc);
 
 	if (lineOrRange !== null) {
-		if (typeof lineOrRange == 'number') {
+		if (typeof lineOrRange === 'number') {
 			lineOrRange = doc.lineAt(lineOrRange).range;
 		}
 

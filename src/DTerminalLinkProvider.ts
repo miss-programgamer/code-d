@@ -56,7 +56,7 @@ export async function findDErrorLines(line: string, cwd: string): Promise<Termin
 	while (true) {
 		i = line.indexOf('(', i);
 
-		if (i == -1) {
+		if (i === -1) {
 			break;
 		}
 
@@ -79,7 +79,7 @@ export async function findDErrorLines(line: string, cwd: string): Promise<Termin
 
 function endsWithMixin(line: string, endIndex: number): boolean {
 	// format = "file.d-mixin-5(5, 8)"
-	if (endIndex == 0 || !isDigit(line[endIndex - 1])) {
+	if (endIndex === 0 || !isDigit(line[endIndex - 1])) {
 		return false;
 	}
 
@@ -141,7 +141,7 @@ async function extractFileLinkAt(cwd: string, line: string, idx: number): Promis
 		end++;
 	}
 
-	if (end == 0 || file[end - 1] == '.') {
+	if (end === 0 || file[end - 1] === '.') {
 		return null;
 	}
 
@@ -150,17 +150,19 @@ async function extractFileLinkAt(cwd: string, line: string, idx: number): Promis
 
 	if (lineNoMatch) {
 		lineNo = parseInt(lineNoMatch[1]);
-		if (lineNoMatch[2])
+		if (lineNoMatch[2]) {
 			column = parseInt(lineNoMatch[2]);
+		}
 		endOffset += lineNoMatch[0].length;
-		if (lineNoMatch[0][0] == '(')
+		if (lineNoMatch[0][0] === '(') {
 			endOffset++;
+		}
 	}
 
 	if (endsWithMixin(file, end)) {
 		const newEnd = file.lastIndexOf('-mixin-', end);
 
-		if (newEnd == -1) {
+		if (newEnd === -1) {
 			throw new Error('this should not happen');
 		}
 

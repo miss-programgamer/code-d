@@ -104,7 +104,7 @@ export class JSONProvider implements HoverProvider, CompletionItemProvider {
 
 		if (location.isAtPropertyKey) {
 			let addValue = !location.previousNode
-				|| (!location.previousNode.colonOffset && (offset == (location.previousNode.offset + location.previousNode.length)))
+				|| (!location.previousNode.colonOffset && (offset === (location.previousNode.offset + location.previousNode.length)))
 				|| (location.isAtPropertyKey && !location.previousNode?.colonOffset);
 			let scanner = createScanner(document.getText(), true);
 			scanner.setPosition(offset);

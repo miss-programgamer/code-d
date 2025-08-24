@@ -36,7 +36,7 @@ export function addSDLProviders(): Disposable {
 }
 
 function completeDubVersion(info: SDLCompletionInfo): SDLCompletionResult {
-	if (!info.currentSDLObject.values || info.currentSDLObject.values.length != 1) {
+	if (!info.currentSDLObject.values || info.currentSDLObject.values.length !== 1) {
 		return [];
 	}
 
@@ -222,14 +222,14 @@ function platformPatternCompleter(info: SDLCompletionInfo): SDLCompletionResult 
 	}
 
 	let result: CompletionItem[] = [];
-	if (parts.length == 0 || parts.length == 1) {
+	if (parts.length === 0 || parts.length === 1) {
 		result.push.apply(result, platformComplete);
 		result.push.apply(result, architectureComplete);
 		result.push.apply(result, compilerComplete);
-	} else if (parts.length == 2) {
+	} else if (parts.length === 2) {
 		result.push.apply(result, architectureComplete);
 		result.push.apply(result, compilerComplete);
-	} else if (parts.length == 3) {
+	} else if (parts.length === 3) {
 		result = compilerComplete;
 	} else {
 		result = [];
@@ -428,7 +428,7 @@ const buildSettings: CompletionTagMap = {
 			type: 'string',
 			pattern: {
 				complete: async (info: SDLCompletionInfo): Promise<CompletionItem[]> => {
-					if (info.valueIndex == 0) {
+					if (info.valueIndex === 0) {
 						// dependency name
 						let deps = await extension.served?.getDependencies() ?? [];
 						return deps
@@ -839,7 +839,7 @@ let dubSchema = {
 				type: 'string',
 				pattern: {
 					validate(value) {
-						if (value.value.trim().length == 0) {
+						if (value.value.trim().length === 0) {
 							return 'This value must be set';
 						} else {
 							return undefined;
@@ -848,7 +848,7 @@ let dubSchema = {
 					complete(info) {
 						var words = info.partial.trim().split(' ');
 
-						if (words.length == 0) {
+						if (words.length === 0) {
 							return licenses;
 						} else if (info.partial[info.partial.length - 1] !== ' ') {
 							return licenses;
@@ -1082,7 +1082,7 @@ export class SDLContributions implements CompletionItemProvider {
 		}
 
 		function checkValue(value: Value, obj: CompletionValues) {
-			if (value.type != obj.type) {
+			if (value.type !== obj.type) {
 				errors.push(new Diagnostic(range(value.range), `Type mismatch. Expected type: ${obj.type}`, DiagnosticSeverity.Error));
 			}
 
@@ -1098,7 +1098,7 @@ export class SDLContributions implements CompletionItemProvider {
 					}
 				}
 			} else if (obj.enum) {
-				if (obj.enum.indexOf(value.value) == -1 && !obj.enumOptional) {
+				if (obj.enum.indexOf(value.value) === -1 && !obj.enumOptional) {
 					errors.push(new Diagnostic(range(value.range), 'This is not a valid value', DiagnosticSeverity.Error));
 				}
 			}
@@ -1112,7 +1112,7 @@ export class SDLContributions implements CompletionItemProvider {
 					hasTags = true;
 					if (obj.tags![tagName]) {
 						tag.tags[tagName].forEach(childTag => {
-							if (obj.tags![tagName].namespace && obj.tags![tagName].namespace != nsName && tag.range) {
+							if (obj.tags![tagName].namespace && obj.tags![tagName].namespace !== nsName && tag.range) {
 								errors.push(new Diagnostic(range(tag.range), 'Invalid namespace', DiagnosticSeverity.Error));
 							}
 							scanTag(childTag, obj.tags![tagName]);
@@ -1127,7 +1127,7 @@ export class SDLContributions implements CompletionItemProvider {
 
 			if (obj.namespaces) {
 				Object.keys(tag.namespaces).forEach(nsName => {
-					if (obj.namespaces!.indexOf(nsName) != -1) {
+					if (obj.namespaces!.indexOf(nsName) !== -1) {
 						scanTag(tag.namespaces[nsName], obj, nsName);
 					}
 				});
@@ -1145,7 +1145,7 @@ export class SDLContributions implements CompletionItemProvider {
 				}
 
 				if (obj.suggestShouldHaveValues) {
-					if (tag.values.length == 0 && tag.range) {
+					if (tag.values.length === 0 && tag.range) {
 						errors.push(new Diagnostic(range(tag.range), 'This directive should specify some values, otherwise it might not have any effect', DiagnosticSeverity.Information));
 					}
 				}

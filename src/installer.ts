@@ -35,7 +35,7 @@ export default class Installer {
 			} else {
 				return join(process.env.HOME, '.dlang', 'bin');
 			}
-		} else if (process.platform == 'win32' && process.env.APPDATA) {
+		} else if (process.platform === 'win32' && process.env.APPDATA) {
 			return join(process.env.APPDATA, 'dlang', 'bin');
 		} else {
 			return join(extension.path, 'bin');
@@ -62,7 +62,7 @@ export default class Installer {
 
 			const len = parseInt(body.headers['Content-Length'] || body.headers['content-length'] || '0');
 
-			if (len == 0) {
+			if (len === 0) {
 				return body.data;
 			}
 
@@ -122,7 +122,7 @@ export default class Installer {
 			return Promise.resolve(undefined);
 		}
 
-		if (servedVersionCache.channel == channel) {
+		if (servedVersionCache.channel === channel) {
 			return Promise.resolve(servedVersionCache.release);
 		}
 
@@ -384,7 +384,7 @@ export default class Installer {
 	}
 
 	installServeD(urls: { url: string, title: string; }[], ref: string): (env: NodeJS.ProcessEnv) => Promise<boolean | undefined | 'retry'> {
-		if (urls.length == 0) {
+		if (urls.length === 0) {
 			return async (env: any) => {
 				const compileItem = 'Compile from source';
 
@@ -398,14 +398,14 @@ export default class Installer {
 		}
 
 		// add DCD binaries here as well
-		if (process.platform == 'linux' && process.arch == 'x64') {
+		if (process.platform === 'linux' && process.arch === 'x64') {
 			urls.push({ url: 'https://github.com/dlang-community/DCD/releases/download/v0.15.2/dcd-v0.15.2-linux-x86_64.tar.gz', title: 'DCD' });
-		} else if (process.platform == 'darwin' && process.arch == 'x64') {
+		} else if (process.platform === 'darwin' && process.arch === 'x64') {
 			urls.push({ url: 'https://github.com/dlang-community/DCD/releases/download/v0.15.2/dcd-v0.15.2-osx-x86_64.tar.gz', title: 'DCD' });
-		} else if (process.platform == 'darwin' && process.arch == 'arm64') {
+		} else if (process.platform === 'darwin' && process.arch === 'arm64') {
 			urls.push({ url: 'https://github.com/dlang-community/DCD/releases/download/v0.15.2/dcd-v0.15.2-osx-arm64.tar.gz', title: 'DCD' });
-		} else if (process.platform == 'win32') {
-			if (process.arch == 'x64') {
+		} else if (process.platform === 'win32') {
+			if (process.arch === 'x64') {
 				urls.push({ url: 'https://github.com/dlang-community/DCD/releases/download/v0.15.2/dcd-v0.15.2-windows-x86_64.zip', title: 'DCD' });
 			} else {
 				urls.push({ url: 'https://github.com/dlang-community/DCD/releases/download/v0.15.2/dcd-v0.15.2-windows-x86.zip', title: 'DCD' });
@@ -417,7 +417,7 @@ export default class Installer {
 
 			var outputFolder = this.determineOutputFolder();
 			mkdirp.sync(outputFolder);
-			var finalDestination = join(outputFolder, `serve-d${process.platform == 'win32' ? '.exe' : ''}`);
+			var finalDestination = join(outputFolder, `serve-d${process.platform === 'win32' ? '.exe' : ''}`);
 			this.installOutput.appendLine(`Installing into ${outputFolder}`);
 
 			if (!existsSync(outputFolder)) {
@@ -496,13 +496,13 @@ export default class Installer {
 				} catch (e) {
 					throw e;
 				}
-			} else if (ext == '.tar.xz' || ext == '.tar.gz') {
-				var mod = ext == '.tar.xz' ? 'J' : 'z';
+			} else if (ext === '.tar.xz' || ext === '.tar.gz') {
+				var mod = ext === '.tar.xz' ? 'J' : 'z';
 				this.installOutput.appendLine(`> tar xvf${mod} ${fileName}`);
 				ChildProcess.spawn('tar', [`xvf${mod}`, fileName], {
 					cwd: outputFolder
 				}).on('exit', (code) => {
-					if (code != 0) {
+					if (code !== 0) {
 						throw code;
 					}
 
@@ -562,7 +562,7 @@ export default class Installer {
 			env['DFLAGS'] = '-O -release';
 			let buildArgs = ['build'];
 
-			if (process.platform == 'win32') {
+			if (process.platform === 'win32') {
 				env['DFLAGS'] = '-release';
 				buildArgs.push('--arch=x86_mscoff');
 			}
@@ -578,7 +578,7 @@ export default class Installer {
 				[dubPath, buildArgs]
 			], env, ref);
 
-			var finalDestination = join(outputFolder, 'serve-d', `serve-d${process.platform == 'win32' ? '.exe' : ''}`);
+			var finalDestination = join(outputFolder, 'serve-d', `serve-d${process.platform === 'win32' ? '.exe' : ''}`);
 
 			extension.hideNextPotentialConfigUpdateWarning();
 			await extension.settings.setServedPath(finalDestination, true);
@@ -669,7 +669,7 @@ export default class Installer {
 							}
 						}, (log: string) => {
 							// concat with previous log just to make it very unlikely to split in middle because of buffering
-							if ((prevLog + log).toLowerCase().indexOf('unsupported architecture: x86_mscoff') != -1) {
+							if ((prevLog + log).toLowerCase().indexOf('unsupported architecture: x86_mscoff') !== -1) {
 								failedArch = true;
 							}
 							prevLog = log;

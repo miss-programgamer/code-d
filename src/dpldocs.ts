@@ -104,7 +104,7 @@ class WorkState {
 
 		let singleItem: DocItem | undefined;
 
-		if (this.items.length == 1) {
+		if (this.items.length === 1) {
 			singleItem = this.items[0];
 		} else if (this.query) {
 			let perfect = [];
@@ -120,7 +120,7 @@ class WorkState {
 				}
 			}
 
-			if (perfect.length == 1) {
+			if (perfect.length === 1) {
 				singleItem = perfect[0];
 			} else if (perfect.length > 1) {
 				singleItem = undefined;
@@ -214,14 +214,14 @@ export async function fillDplDocs(panel: WebviewPanel, label: string, href: stri
 							// make relative links have protocol "coded-internal:" so they don't trigger vscode trusted domains question / don't actually open any browser
 							var m;
 							if (m = /^(https?:)\\/\\/[^/?#]+\\.dpldocs\\.info(\\/|$)/.exec(links[i].getAttribute("href")))
-								links[i].setAttribute("href", "coded-internal:" + links[i].getAttribute("href").substr(m[1].length));
+								links[i].setAttribute("href", "coded-internal:" + links[i].getAttribute("href").substring(m[1].length));
 
 							links[i].onclick = function(event) {
 								var href = this.href || this.getAttribute("href");
 
 								// make relative links relative (happens with source code links)
 								if (href.startsWith(window.location.protocol + "//" + window.location.host + "/"))
-									href = href.substr((window.location.protocol + "//" + window.location.host).length);
+									href = href.substring((window.location.protocol + "//" + window.location.host).length);
 
 								// external links, don't handle them
 								if (!/^coded-internal:\\/\\/[^/?#]+\\.dpldocs\\.info(\\/|$)|^\\/[^/]/.test(href) || href.startsWith("#"))
@@ -233,11 +233,11 @@ export async function fillDplDocs(panel: WebviewPanel, label: string, href: stri
 								// open code in editor
 								if (href.indexOf("source/") != -1 && /\\.d\\.html(#L\\d+)?$/.test(href))
 								{
-									href = href.substr(href.indexOf("source/") + "source/".length);
+									href = href.substring(href.indexOf("source/") + "source/".length);
 									var lno = 0;
 									if (href.indexOf("L") != -1)
-										lno = parseInt(href.substr(href.lastIndexOf("L") + 1));
-									var module_ = href.substr(0, href.lastIndexOf(".d.html"));
+										lno = parseInt(href.substring(href.lastIndexOf("L") + 1));
+									var module_ = href.substring(0, href.lastIndexOf(".d.html"));
 									vscode.postMessage({ type: "open-module", module_: module_, line: lno });
 									event.preventDefault();
 									return false;
@@ -430,14 +430,14 @@ async function loadDependencyPackageDocumentations(state: WorkState) {
 			var strippedVersion = dep.info.version;
 
 			if (strippedVersion.startsWith('~')) {
-				strippedVersion = strippedVersion.substr(1);
+				strippedVersion = strippedVersion.substring(1);
 			}
 
 			var strippedName = dep.info.name;
 			var colon = strippedName.indexOf(':');
 
 			if (colon != -1) {
-				strippedName = strippedName.substr(0, colon);
+				strippedName = strippedName.substring(0, colon);
 			}
 
 			if (checked.indexOf(strippedName) != -1) {

@@ -48,7 +48,7 @@ export class DubTaskProvider implements TaskProvider {
 			taskConfig.definition.buildType = '$current';
 			taskConfig.definition.configuration = '$current';
 
-			if (!dubLint && !Array.isArray(taskConfig.problemMatchers) || taskConfig.problemMatchers.length == 0) {
+			if (!dubLint && !Array.isArray(taskConfig.problemMatchers) || taskConfig.problemMatchers.length === 0) {
 				taskConfig.problemMatchers = ['$dmd'];
 			}
 

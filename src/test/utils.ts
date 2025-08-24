@@ -37,7 +37,7 @@ export async function testCompletion(
 		ok(actualCompletionList.items.length >= expectedCompletionList.items.length, `Expected at least ${expectedCompletionList.items.length} completions, but only got ${actualCompletionList.items.length}`);
 
 		expectedCompletionList.items.forEach((expectedItem, i) => {
-			const actualItem = actualCompletionList.items.find(i => i.label == expectedItem.label);
+			const actualItem = actualCompletionList.items.find(i => i.label === expectedItem.label);
 
 			if (!actualItem) {
 				fail(`can't find completion item ${JSON.stringify(expectedItem.label)} in ${JSON.stringify(actualCompletionList.items.map(c => c.label))}`);

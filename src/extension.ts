@@ -195,7 +195,7 @@ export class Extension {
 			const beta = 'Switch to Beta';
 
 			const message = `Hey! The setting 'd.betaStream' no longer exists and has been replaced with 'd.servedReleaseChannel'. Your settings have been automatically updated to fetch nightly builds, but you probably want to remove the old setting.\n\nStable and beta releases are planned more frequently now, so they might be a better option for you.`;
-			const selected = await window.showInformationMessage(message, stable, beta, userConfig)
+			const selected = await window.showInformationMessage(message, stable, beta, userConfig);
 
 			if (selected === userConfig) {
 				commands.executeCommand('workbench.action.openGlobalSettings');
@@ -343,7 +343,7 @@ export class Extension {
 
 			const btnInteractive = 'More Options...';
 
-			const message = `There are too many subprojects in this project according to d.manyProjectsThreshold. Load ${roots.length == 1 ? '1 extra project?' : `${roots.length} extra projects?`}${decidedNum > 0 ? (`\n${decidedNum == 1 ? '1 project has' : `${decidedNum} projects have`} been decided on based on d.manyProjects{Allow/Deny}List already.`) : ''}`;
+			const message = `There are too many subprojects in this project according to d.manyProjectsThreshold. Load ${roots.length === 1 ? '1 extra project?' : `${roots.length} extra projects?`}${decidedNum > 0 ? (`\n${decidedNum === 1 ? '1 project has' : `${decidedNum} projects have`} been decided on based on d.manyProjects{Allow/Deny}List already.`) : ''}`;
 			const selected = await window.showInformationMessage(message, btnLoadAll, btnSkipAll, btnInteractive);
 
 			function setRemaining(b: boolean) {
@@ -385,14 +385,20 @@ export class Extension {
 					result?.forEach(r => {
 						let root = <string>(<any>r)._root;
 						let id = <number>(<any>r)._id;
-						if (!root)
-							return;
 
-						if (!allowList.includes(root))
+						if (!root) {
+							return;
+						}
+
+						if (!allowList.includes(root)) {
 							allowList.push(root);
+						}
+
 						let denyIndex = denyList.indexOf(root);
-						if (denyIndex != -1)
+
+						if (denyIndex !== -1) {
 							denyList.splice(denyIndex, 1);
+						}
 
 						decisions[id] = true;
 					});
@@ -404,14 +410,14 @@ export class Extension {
 								denyList.push(root);
 							}
 							let allowIndex = allowList.indexOf(root);
-							if (allowIndex != -1) {
+							if (allowIndex !== -1) {
 								allowList.splice(allowIndex, 1);
 							}
 							decisions[i] = false;
 						}
 					}
 
-					const save = (result?.findIndex(r => (<any>r)._id == 'remember') ?? -1) >= 0;
+					const save = (result?.findIndex(r => (<any>r)._id === 'remember') ?? -1) >= 0;
 
 					if (save) {
 						await this.settings.setManyProjectsAllowList(allowList);
@@ -431,7 +437,7 @@ export class Extension {
 		});
 
 		client.onNotification('window/logMessage', function (info: { type: MessageType, message: string; }) {
-			if (info.type == MessageType.Log && info.message.startsWith('[progress]')) {
+			if (info.type === MessageType.Log && info.message.startsWith('[progress]')) {
 				let m = /^\[progress\] \[(\d+\.\d+)\] \[(\w+)\](?:\s*(\d+)?\s*(?:\/\s*(\d+))?:\s)?(.*)/.exec(info.message);
 				if (!m) return;
 				const time = parseFloat(m[1]);
@@ -451,10 +457,10 @@ export class Extension {
 					statusBar.endStartupProgress();
 				} else if (type === 'workspaceStartup' && step != null && total != null) {
 					statusBar.updateStartupProgress(step * 0.5, total, title, 'updating');
-				} else if (type == 'completionStartup' && step != null && total != null) {
+				} else if (type === 'completionStartup' && step != null && total != null) {
 					statusBar.updateStartupProgress(step * 0.5 + total * 0.5, total, title, 'indexing');
 				} else if ((type === 'dubReload' || type === 'importReload' || type === 'importUpgrades') && step != null && total != null) {
-					if (step == total) {
+					if (step === total) {
 						statusBar.endStartupProgress();
 					} else {
 						statusBar.beginStartupProgress();
@@ -512,14 +518,14 @@ export class Extension {
 
 		const currentCodedServedIteration = 1; // bump on new dlang releases that want new serve-d
 		const firstTimeUser: boolean = globals.serveDDownloadedReleaseChannel != null;
-		const force: boolean = globals.serveDWantedDownloadIteration != currentCodedServedIteration;
+		const force: boolean = globals.serveDWantedDownloadIteration !== currentCodedServedIteration;
 
 		const releaseChannel = this.settings.releaseChannel;
 		const version = await this.#installer.findLatestServeD(firstTimeUser || force, releaseChannel);
 
 		let origUpdateFun = version ? (version.asset
 			? this.#installer.installServeD([{ url: version.asset.browser_download_url, title: 'Serve-D' }], version.name)
-			: this.#installer.compileServeD((version && version.name != 'nightly') ? version.name : undefined))
+			: this.#installer.compileServeD((version && version.name !== 'nightly') ? version.name : undefined))
 			: this.#installer.updateAndInstallServeD;
 
 		let updateFun = origUpdateFun;
@@ -573,7 +579,7 @@ export class Extension {
 					const close = 'Close';
 
 					const message = `Welcome to dlang ${this.version}! See what has changed since ${globals.lastCheckedCodedVersion ?? 'last version'}...`;
-					const selected = await window.showInformationMessage(message, disableChangelog, close)
+					const selected = await window.showInformationMessage(message, disableChangelog, close);
 
 					if (selected === disableChangelog) {
 						this.settings.setShowUpdateChangelogs(false);
@@ -600,7 +606,7 @@ export class Extension {
 			if (!this.#compiler.name || !this.#compiler.path) {
 				return false;
 			} else {
-				const ext = process.platform == 'win32' ? '.exe' : '';
+				const ext = process.platform === 'win32' ? '.exe' : '';
 				return await this.checkDub(join(dirname(this.#compiler.path), `dub${ext}`), true);
 			}
 		}
@@ -642,9 +648,9 @@ export class Extension {
 			const userSettingsBtn = 'Open User Settings';
 
 			let defaultHandler = (s: string | undefined) => {
-				if (s == userSettingsBtn) {
+				if (s === userSettingsBtn) {
 					commands.executeCommand('workbench.action.openGlobalSettings');
-				} else if (s == reinstallBtn) {
+				} else if (s === reinstallBtn) {
 					return installFunc(process.env);
 				}
 			};
@@ -747,7 +753,7 @@ export class Extension {
 
 			const releaseChannel = this.settings.releaseChannel;
 
-			if (globals.serveDDownloadedReleaseChannel && releaseChannel != globals.serveDDownloadedReleaseChannel) {
+			if (globals.serveDDownloadedReleaseChannel && releaseChannel !== globals.serveDDownloadedReleaseChannel) {
 				return [true, `(target channel=${releaseChannel}, installed channel=${globals.serveDDownloadedReleaseChannel})`];
 			}
 

@@ -360,7 +360,7 @@ export default class DClient extends LanguageClient {
 
 			for (let i = change.replacements.length - 1; i >= 0; i--) {
 				const r = change.replacements[i];
-				if (r.range[0] == r.range[1]) {
+				if (r.range[0] === r.range[1]) {
 					edit.insert(editor.document.positionAt(r.range[0]), r.content);
 				} else if (r.content === '') {
 					edit.delete(new Range(editor.document.positionAt(r.range[0]), editor.document.positionAt(r.range[1])));
@@ -397,7 +397,7 @@ export default class DClient extends LanguageClient {
 			client.served.triggerDscanner(editor.document.uri);
 		};
 
-		if (typeof key !== 'string' || key.length == 0) {
+		if (typeof key !== 'string' || key.length === 0) {
 			var available: string[] = [
 				'dscanner.bugs.backwards_slices',
 				'dscanner.bugs.if_else_same',
@@ -455,8 +455,9 @@ export default class DClient extends LanguageClient {
 			if (Array.isArray(ignored)) {
 				ignored.forEach(element => {
 					var i = available.indexOf(element);
-					if (i != -1)
+					if (i !== -1) {
 						available.splice(i, 1);
+					}
 				});
 			}
 
