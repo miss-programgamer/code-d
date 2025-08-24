@@ -171,14 +171,16 @@ export class DubJSONContribution implements IJSONContribution {
 		if (typeof currentKey === 'string') {
 			return new Promise((resolve, reject) => {
 				getPackageInfo(currentKey).then(json => {
-					var versions = json.versions;
+					const versions = json.versions;
+
 					if (!versions || !versions.length) {
 						result.error('No versions found');
 						return resolve(undefined);
 					}
-					var items: CompletionItem[] = [];
-					for (var i = versions.length - 1; i >= 0; i--) {
-						var item = new CompletionItem(versions[i].version);
+
+					const items: CompletionItem[] = [];
+					for (let i = versions.length - 1; i >= 0; i--) {
+						const item = new CompletionItem(versions[i].version);
 						item.detail = `Released on ${new Date(versions[i].date).toLocaleDateString()}`;
 						item.kind = CompletionItemKind.Class;
 						item.insertText = new SnippetString(JSON.stringify(`\${0}${versions[i].version}`));
@@ -186,14 +188,17 @@ export class DubJSONContribution implements IJSONContribution {
 						item.sortText = '0';
 						items.push(item);
 					}
+
 					items.sort((a, b) => cmpSemver(
 						typeof b.label === 'string' ? b.label : b.label.label,
 						typeof a.label === 'string' ? a.label : a.label.label
 					));
+
 					for (let i = 0; i < items.length; i++) {
-						items[i].sortText = (10000000 + i).toString(); // lazy 0 pad
+						items[i].sortText = i.toString().padStart(7);
 						result.add(items[i]);
 					}
+
 					resolve(undefined);
 				}, error => {
 					result.error(error.toString());
@@ -201,6 +206,7 @@ export class DubJSONContribution implements IJSONContribution {
 				});
 			});
 		}
+
 		return Promise.resolve(null);
 	}
 

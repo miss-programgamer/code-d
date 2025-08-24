@@ -3,6 +3,7 @@
 		"strict": true,
 		"target": "esnext",
 		"module": "nodenext",
+		"moduleResolution": "nodenext",
 		"rootDir": "src",
 		"outDir": "out",
 		"sourceMap": true,

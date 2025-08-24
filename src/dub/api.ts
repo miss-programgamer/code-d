@@ -32,27 +32,33 @@ export async function listPackages(): Promise<any[]> {
 	}
 }
 
-var packageCache: any;
-var packageCacheDate = new Date(0);
+type Package = { name: string; version: string; description: string; };
+
+function packageToQuickPickItem({ name, version, description }: Package): QuickPickItem {
+	return {
+		label: name,
+		description: version,
+		detail: description,
+	};
+}
+
+let packageCache: Package[];
+let packageCacheDate = new Date(0);
 
 export async function listPackageOptions(): Promise<QuickPickItem[]> {
 	if (new Date().getTime() - packageCacheDate.getTime() < 15 * 60 * 1000) {
-		return Promise.resolve(packageCache);
+		return packageCache.map(packageToQuickPickItem);
 	}
 
 	try {
-		const body = await dubAPI().get<{ name: string; description: string; version: string; }[]>('/api/packages/search');
-		var ret: QuickPickItem[] = [];
-		body.data.forEach(element => {
-			ret.push({
-				label: element.name,
-				description: element.version,
-				detail: element.description
-			});
-		});
-		packageCache = ret;
+		const body = await dubAPI().get<Package[]>('/api/packages/search');
+
 		packageCacheDate = new Date();
-		return ret;
+		packageCache = body.data.map(({ name, version, description }) => ({
+			name, version, description,
+		}));
+
+		return packageCache.map(packageToQuickPickItem);
 	} catch (e) {
 		if (e instanceof AxiosError && e.response != null) {
 			throw new Error('No packages found');
@@ -78,14 +84,9 @@ export async function getPackageInfo(pkg: string): Promise<any> {
 export async function getLatestPackageInfo(pkg: string): Promise<{ description?: string; version?: string; subPackages?: string[], readme?: string, readmeMarkdown?: boolean, license?: string, copyright?: string; }> {
 	const body = await dubAPI().get<any>(`/api/packages/${encodeURIComponent(pkg)}/latest/info`);
 
-	var json = body.data;
-	var subPackages: string[] = [];
+	const json = body.data;
 
-	if (json.info.subPackages) {
-		json.info.subPackages.forEach((pkg_1: any) => {
-			subPackages.push(pkg_1.name);
-		});
-	}
+	const subPackages = json.info.subPackages?.map(({ name }: { name: string; }) => name) ?? [];
 
 	return {
 		version: json.version,

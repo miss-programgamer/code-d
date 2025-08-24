@@ -60,21 +60,27 @@ class WorkState {
 	}
 
 	refreshItems() {
-		if (this.done)
+		if (this.done) {
 			return;
+		}
 
-		var ret: DocItem[] = this.items.slice();
-		for (var key in this.depItems)
-			if (this.depItems.hasOwnProperty(key))
+		const ret: DocItem[] = this.items.slice();
+
+		for (const key in this.depItems) {
+			if (this.depItems.hasOwnProperty(key)) {
 				ret.push.apply(ret, this.depItems[key]);
+			}
+		}
+
 		ret.sort((a, b) => b.score - a.score);
 		this.quickPick.items = ret;
 
 		if (!this.visible && this.working <= 0) {
 			if (!this.finishQuick()) {
 				this.quickPick.show();
-				if (this.resolve)
+				if (this.resolve) {
 					this.resolve();
+				}
 			}
 
 			this.visible = true;
@@ -83,17 +89,18 @@ class WorkState {
 
 	show() {
 		this.quickPick.items = this.items;
+
 		if (this.fastOpen) {
 			this.finishQuick();
-		}
-		else {
+		} else {
 			this.quickPick.show();
 			this.visible = true;
 		}
 
 		this.quickPick.onDidHide((e) => {
-			if (this.resolve)
+			if (this.resolve) {
 				this.resolve();
+			}
 			this.done = true;
 		});
 	}
@@ -146,20 +153,21 @@ class WorkState {
 }
 
 export function showDpldocsSearch(query?: string, fastOpen: boolean = false) {
-	var quickpick = window.createQuickPick<DocItem>();
+	const quickpick = window.createQuickPick<DocItem>();
 	const state = new WorkState(quickpick, query, fastOpen);
 
 	loadDependencyPackageDocumentations(state);
 
-	var timeout: NodeJS.Timeout | undefined;
+	let timeout: NodeJS.Timeout | undefined;
 	function updateSearch(query: string, delay: number = 500) {
 		timeout = updateRootSearchQuery(timeout, query, state, delay);
 	}
+
 	quickpick.onDidChangeValue((value) => updateSearch(value));
 
 	quickpick.placeholder = 'Enter search term for symbol...';
 	quickpick.onDidAccept(() => {
-		var selection = quickpick.selectedItems[0];
+		const selection = quickpick.selectedItems[0];
 		if (selection) {
 			showDocItemUI(selection);
 		}
@@ -423,21 +431,21 @@ async function loadDependencyPackageDocumentations(state: WorkState) {
 	}
 
 	let deps: any[] = await extension.served.getChildren();
-	var checked: string[] = [];
+	const checked: string[] = [];
 
 	for (const dep of deps) {
 		if (dep.info) {
-			var strippedVersion = dep.info.version;
+			let strippedVersion = dep.info.version;
 
 			if (strippedVersion.startsWith('~')) {
 				strippedVersion = strippedVersion.substring(1);
 			}
 
-			var strippedName = dep.info.name;
-			var colon = strippedName.indexOf(':');
+			let strippedName = dep.info.name;
+			const colonIndex = strippedName.indexOf(':');
 
-			if (colon != -1) {
-				strippedName = strippedName.substring(0, colon);
+			if (colonIndex != -1) {
+				strippedName = strippedName.substring(0, colonIndex);
 			}
 
 			if (checked.indexOf(strippedName) != -1) {

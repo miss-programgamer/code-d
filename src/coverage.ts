@@ -64,8 +64,8 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 
 	updateCache(uri: Uri): Promise<void> {
 		return new Promise<void>((resolve, reject) => {
-			var cache: CoverageLine[] = [];
-			var file = basename(uri.fsPath, '.lst');
+			const cache: CoverageLine[] = [];
+			const file = basename(uri.fsPath, '.lst');
 
 			if (file.indexOf('dub_test_root-') !== -1) {
 				return; // dub cache file for unittests
@@ -77,21 +77,22 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 					return;
 				}
 
-				var lines = data.split('\n');
-				var offsetAdd = 0;
-				var totalCov = '';
-				var source = '';
+				const lines = data.split('\n');
+				let offsetAdd = 0;
+				let totalCov = '';
+				let source = '';
 
-				for (var i = 0; i < lines.length; i++) {
-					var line = lines[i];
+				for (let i = 0; i < lines.length; i++) {
+					const line = lines[i];
+
 					if (line.trim().length === 0) {
 						continue;
 					}
 
-					var match = coveragePattern.exec(line);
+					const match = coveragePattern.exec(line);
 
 					if (!match) {
-						var totalCovMatch = totalCoveragePattern.exec(line);
+						const totalCovMatch = totalCoveragePattern.exec(line);
 						if (totalCovMatch) {
 							source = totalCovMatch[1].trim();
 							totalCov = totalCovMatch[2].trim();
@@ -132,14 +133,15 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 	}
 
 	populateCurrent() {
-		var editor = window.activeTextEditor;
+		const editor = window.activeTextEditor;
 
 		if (!editor || !editor.document) {
 			return;
 		}
 
-		var folder = workspace.getWorkspaceFolder(editor.document.uri);
-		var name;
+		const folder = workspace.getWorkspaceFolder(editor.document.uri);
+
+		let name: string | undefined;
 
 		if (folder) {
 			name = pathToName(folder.uri.fsPath, editor.document.uri.fsPath);
@@ -149,19 +151,20 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 			return;
 		}
 
-		var info = this.cache.get(name);
-		var cache = info ? info.lines : undefined;
-		var uncovRanges: Range[] = [];
-		var covRanges: Range[] = [];
+		const info = this.cache.get(name);
+		const cache = info ? info.lines : undefined;
+		const uncovRanges: Range[] = [];
+		const covRanges: Range[] = [];
+
 		if (cache && cache.length) {
 			const maxLineSkip = 100; // maximum number of lines to scan ahead when new code has been written
-			var lineIndex = 0;
-			var searchOffset = 0;
-			var lineCount = editor.document.lineCount;
-			for (var i = 0; i < cache.length; i++) {
-				searchOffset = 0;
+			let lineIndex = 0;
+			const lineCount = editor.document.lineCount;
+
+			for (let i = 0; i < cache.length; i++) {
+				let searchOffset = 0;
 				for (; lineIndex + searchOffset < lineCount && searchOffset < maxLineSkip + cache[i].offsetAdd; searchOffset++) {
-					var line = editor.document.lineAt(lineIndex + searchOffset);
+					const line = editor.document.lineAt(lineIndex + searchOffset);
 					if (line.text.trim() === cache[i].trimmedLine) {
 						if (cache[i].hits > 0)
 							covRanges.push(line.range);
@@ -172,6 +175,7 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 					}
 				}
 			}
+
 			this.coverageStat.text = `${info ? info.totalCov : 'unknown'}% Coverage`;
 			this.gotCoverage = true;
 			this.refreshStatusBar();
@@ -198,17 +202,19 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 	}
 
 	provideTextDocumentContent(uri: Uri, token: CancellationToken): string {
-		var report = '<!DOCTYPE html>\n<html><head><meta http-equiv="Content-type" content="text/html;charset=UTF-8"><title>Coverage Report</title><style>th{padding:0 12px}</style></head><body>';
-		report += '<table><thead>';
-		report += '<tr><th>Source</th><th>Coverage</th><th>Lines not covered</th><th>Lines covered</th><th>Average hits/line</th></tr>';
-		report += '</thead><tbody>';
-		var totalLinesWithout = 0;
-		var totalLinesWith = 0;
-		var totalSum = 0;
-		var totalCount = 0;
-		var it = this.cache.values();
-		var next;
-		var values: CoverageCache[] = [];
+		let report = '<!DOCTYPE html>\n<html><head><meta http-equiv="Content-type" content="text/html;charset=UTF-8"><title>Coverage Report</title><style>th{padding:0 12px}</style></head><body>'
+			+ '<table><thead>'
+			+ '<tr><th>Source</th><th>Coverage</th><th>Lines not covered</th><th>Lines covered</th><th>Average hits/line</th></tr>'
+			+ '</thead><tbody>';
+
+		const it = this.cache.values();
+
+		let totalLinesWithout = 0;
+		let totalLinesWith = 0;
+		let totalSum = 0;
+		let totalCount = 0;
+		let next;
+		let values: CoverageCache[] = [];
 
 		while (!(next = it.next()).done) {
 			values.push(next.value);
@@ -216,12 +222,12 @@ export class CoverageAnalyzer implements TextDocumentContentProvider, Disposable
 
 		values = values.sort((a, b) => a.source < b.source ? -1 : 1);
 
-		for (var info of values) {
-			var linesWithout = 0;
-			var linesWith = 0;
-			var sum = 0;
-			for (var i = 0; i < info.lines.length; i++) {
-				var line = info.lines[i];
+		for (const info of values) {
+			let linesWithout = 0;
+			let linesWith = 0;
+			let sum = 0;
+			for (let i = 0; i < info.lines.length; i++) {
+				const line = info.lines[i];
 				if (line.hits > 0) {
 					linesWith++;
 				} else {

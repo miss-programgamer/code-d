@@ -415,9 +415,9 @@ export default class Installer {
 		return async (env: any): Promise<boolean | undefined | 'retry'> => {
 			this.installOutput.show(true);
 
-			var outputFolder = this.determineOutputFolder();
+			const outputFolder = this.determineOutputFolder();
 			mkdirp.sync(outputFolder);
-			var finalDestination = join(outputFolder, `serve-d${process.platform === 'win32' ? '.exe' : ''}`);
+			const finalDestination = join(outputFolder, `serve-d${process.platform === 'win32' ? '.exe' : ''}`);
 			this.installOutput.appendLine(`Installing into ${outputFolder}`);
 
 			if (!existsSync(outputFolder)) {
@@ -460,8 +460,8 @@ export default class Installer {
 			ext = extname(url);
 		}
 
-		var fileName = basename(url);
-		var outputPath = join(outputFolder, fileName);
+		const fileName = basename(url);
+		const outputPath = join(outputFolder, fileName);
 		let aborted = false;
 
 		let stream = await this.downloadFileInteractive(url, `${title} Download`, () => {
@@ -497,7 +497,7 @@ export default class Installer {
 					throw e;
 				}
 			} else if (ext === '.tar.xz' || ext === '.tar.gz') {
-				var mod = ext === '.tar.xz' ? 'J' : 'z';
+				const mod = ext === '.tar.xz' ? 'J' : 'z';
 				this.installOutput.appendLine(`> tar xvf${mod} ${fileName}`);
 				ChildProcess.spawn('tar', [`xvf${mod}`, fileName], {
 					cwd: outputFolder
@@ -524,24 +524,24 @@ export default class Installer {
 	}
 
 	extractServedBuiltDate(log: string): Date | false {
-		var parsed = /Built: \w+\s+(\w+)\s+(\d+)\s+(\d+:\d+:\d+)\s+(\d+)/.exec(log);
+		const parsed = /Built: \w+\s+(\w+)\s+(\d+)\s+(\d+:\d+:\d+)\s+(\d+)/.exec(log);
 
 		if (!parsed) {
 			return false;
 		}
 
-		var month = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(parsed[1].toLowerCase());
+		const month = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'].indexOf(parsed[1].toLowerCase());
 
 		if (month < 0) {
 			return false;
 		}
 
-		var date = parseInt(parsed[2]);
-		var parts = parsed[3].split(':');
-		var year = parseInt(parsed[4]);
-		var hour = parseInt(parts[0]);
-		var minute = parseInt(parts[1]);
-		var second = parseInt(parts[2]);
+		const date = parseInt(parsed[2]);
+		const parts = parsed[3].split(':');
+		const year = parseInt(parsed[4]);
+		const hour = parseInt(parts[0]);
+		const minute = parseInt(parts[1]);
+		const second = parseInt(parts[2]);
 
 		if (isNaN(year) || isNaN(date) || isNaN(hour) || isNaN(minute) || isNaN(second)) {
 			return false;
@@ -552,7 +552,7 @@ export default class Installer {
 
 	compileServeD(ref?: string): (env: NodeJS.ProcessEnv) => Promise<boolean | undefined | 'retry'> {
 		return async (env: any): Promise<boolean | undefined | 'retry'> => {
-			var outputFolder = this.determineOutputFolder();
+			const outputFolder = this.determineOutputFolder();
 			mkdirp.sync(outputFolder);
 
 			const dubPath = extension.settings.dubPath;
@@ -578,7 +578,7 @@ export default class Installer {
 				[dubPath, buildArgs]
 			], env, ref);
 
-			var finalDestination = join(outputFolder, 'serve-d', `serve-d${process.platform === 'win32' ? '.exe' : ''}`);
+			const finalDestination = join(outputFolder, 'serve-d', `serve-d${process.platform === 'win32' ? '.exe' : ''}`);
 
 			extension.hideNextPotentialConfigUpdateWarning();
 			await extension.settings.setServedPath(finalDestination, true);
@@ -588,7 +588,7 @@ export default class Installer {
 
 	spawnCommand(cmd: string, args: string[], options: ChildProcess.SpawnOptions, cb: Function, onLog?: Function) {
 		const log = (chunk: any) => {
-			var dat = chunk.toString() ?? 'null';
+			const dat = chunk.toString() ?? 'null';
 			this.installOutput.append(dat);
 			if (typeof onLog === 'function') {
 				onLog(dat);
@@ -598,7 +598,7 @@ export default class Installer {
 		this.installOutput.appendLine(`> ${cmd} ${args.join(' ')}`);
 
 		try {
-			var proc = ChildProcess.spawn(cmd, args, options);
+			const proc = ChildProcess.spawn(cmd, args, options);
 
 			if (proc.stdout) {
 				proc.stdout.on('data', log);
@@ -635,8 +635,8 @@ export default class Installer {
 				this.installOutput.appendLine(`Failed to install ${name} (Error code ${err})`);
 			};
 
-			var newCwd = join(cwd, name);
-			var startCompile = async () => {
+			const newCwd = join(cwd, name);
+			const startCompile = async () => {
 				const git = gitPath();
 				this.spawnCommand(git, ['clone', '--recursive', gitURI, name], { cwd: cwd, env: env }, (err: any) => {
 					if (err !== 0) {
@@ -648,12 +648,12 @@ export default class Installer {
 					}
 
 					async.eachSeries(commands, (command: [string, string[]], cb: Function) => {
-						var failedArch = false;
-						var prevLog = '';
+						let failedArch = false;
+						let prevLog = '';
 						this.spawnCommand(command[0], command[1], {
 							cwd: newCwd
 						}, (err: any) => {
-							var index = command[1].indexOf('--arch=x86_mscoff'); // must be this format for it to work
+							const index = command[1].indexOf('--arch=x86_mscoff'); // must be this format for it to work
 							if (err && failedArch && command[0] === 'dub' && index !== -1) {
 								// failed because we tried to build with x86_mscoff but it wasn't available (LDC was probably used)
 								// try again with x86

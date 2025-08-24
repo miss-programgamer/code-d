@@ -317,10 +317,10 @@ export default class DClient extends LanguageClient {
 			const change = await this.sortImports(editor.document.uri, location);
 
 			if (change.length > 0) {
-				var s = change[0].range.start;
-				var e = change[0].range.end;
-				var start = new Position(s.line, s.character);
-				var end = new Position(e.line, e.character);
+				const { line: startLine, character: startChar } = change[0].range.start;
+				const { line: endLine, character: endChar } = change[0].range.end;
+				const start = new Position(startLine, startChar);
+				const end = new Position(endLine, endChar);
 				edit.replace(new Range(start, end), change[0].newText);
 			}
 		} catch (err) {
@@ -338,8 +338,8 @@ export default class DClient extends LanguageClient {
 			const change = await this.implementMethods(editor.document.uri, location);
 
 			if (change.length > 0) {
-				var s = change[0].range.start;
-				var start = new Position(s.line, s.character);
+				const { line: startLine, character: startChar } = change[0].range.start;
+				const start = new Position(startLine, startChar);
 				editor.insertSnippet(new SnippetString(change[0].newText), start);
 			}
 		} catch (err) {
@@ -398,7 +398,7 @@ export default class DClient extends LanguageClient {
 		};
 
 		if (typeof key !== 'string' || key.length === 0) {
-			var available: string[] = [
+			const available: string[] = [
 				'dscanner.bugs.backwards_slices',
 				'dscanner.bugs.if_else_same',
 				'dscanner.bugs.logic_operator_operands',
@@ -454,7 +454,7 @@ export default class DClient extends LanguageClient {
 
 			if (Array.isArray(ignored)) {
 				ignored.forEach(element => {
-					var i = available.indexOf(element);
+					const i = available.indexOf(element);
 					if (i !== -1) {
 						available.splice(i, 1);
 					}

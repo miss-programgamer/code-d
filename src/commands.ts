@@ -133,7 +133,7 @@ async function rdmdCurrentCommand(file?: Uri) {
 	const cwd = file != null ? dirname(file.fsPath) : workspace.workspaceFolders != null ? workspace.workspaceFolders[0].uri.fsPath : undefined;
 	const shell = new ShellExecution({ value: 'rdmd', quoting: ShellQuoting.Strong }, args, { cwd: cwd });
 
-	var evalCounter = 0;
+	let evalCounter = 0;
 	const task = new Task({ type: 'rdmd', }, TaskScope.Workspace, `RDMD ${file || (`eval code ${++evalCounter}`)}`, 'dlang', shell);
 	task.isBackground = false;
 	task.presentationOptions = { echo: file != null };
@@ -367,7 +367,6 @@ const multiTokenWordPattern = /[^\`\~\!\@\#\%\^\&\*\(\)\=\+\[\{\]\}\\\|\;\:\'\"\
 
 function openDocsAtCursorCommand(editor: TextEditor, _edit: TextEditorEdit) {
 	// TODO: we can probably add local ddoc rendering if we can jump to the symbol anyway
-	var query = '';
 	if (editor.selection.isEmpty) {
 		const range = editor.document.getWordRangeAtPosition(editor.selection.active, multiTokenWordPattern);
 		if (range) {

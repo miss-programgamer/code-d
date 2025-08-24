@@ -504,8 +504,8 @@ export async function checkCompilers(): Promise<DetectedCompiler> {
 		if (compiler.name) {
 			function isBetterVer(vs: number) {
 				if (vs !== -1) {
-					var a = compilers[i].frontendVersion ?? compilers[i].version ?? '0';
-					var b = compilers[vs].frontendVersion ?? compilers[vs].version ?? '0';
+					const a = compilers[i].frontendVersion ?? compilers[i].version ?? '0';
+					const b = compilers[vs].frontendVersion ?? compilers[vs].version ?? '0';
 					return cmpVerGeneric(a, b) > 0;
 				} else {
 					return true;
@@ -533,8 +533,8 @@ export async function checkCompilers(): Promise<DetectedCompiler> {
 }
 
 function cmpVerGeneric(a: string, b: string): number {
-	var as = a.split(/[\s\.\-]+/g).map(i => parseInt(i)).filter(n => isFinite(n));
-	var bs = b.split(/[\s\.\-]+/g).map(i => parseInt(i)).filter(n => isFinite(n));
+	const as = a.split(/[\s\.\-]+/g).map(i => parseInt(i)).filter(n => isFinite(n));
+	const bs = b.split(/[\s\.\-]+/g).map(i => parseInt(i)).filter(n => isFinite(n));
 	return as < bs ? -1 : as > bs ? 1 : 0;
 }
 
@@ -591,7 +591,7 @@ export async function listCompilersImpl(): Promise<DetectedCompiler[]> {
 			foundPaths.unshift.apply(foundPaths, m[1].split(process.platform === 'win32' ? /;/g : /:/g));
 		}
 
-		for (var i = 0; i < foundPaths.length; i++) {
+		for (let i = 0; i < foundPaths.length; i++) {
 			let exeName: string = type;
 
 			if (type === 'ldc') {

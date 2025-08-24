@@ -276,13 +276,13 @@ export class Extension {
 		registerDebuggers();
 		linkDebuggersWithServed(served);
 
-		var updateSetting = new NotificationType<{ section: string, value: any, global: boolean; }>('coded/updateSetting');
+		const updateSetting = new NotificationType<{ section: string, value: any, global: boolean; }>('coded/updateSetting');
 		client.onNotification(updateSetting, (arg: { section: string, value: any, global: boolean; }) => {
 			this.hideNextPotentialConfigUpdateWarning();
 			this.settings.set(arg.section, arg.value, arg.global ? ConfigurationTarget.Global : undefined);
 		});
 
-		var logInstall = new NotificationType<string>('coded/logInstall');
+		const logInstall = new NotificationType<string>('coded/logInstall');
 		client.onNotification(logInstall, (message: string) => {
 			this.#output.appendLine(message);
 		});
@@ -628,7 +628,7 @@ export class Extension {
 		btn: string,
 		outdatedCheck?: (log: string) => (boolean | [boolean, string])
 	): Promise<boolean | undefined | 'retry'> {
-		var version = '';
+		let version: string;
 
 		try {
 			version = await this.spawnOneShotCheck(expandTilde(this.settings.get(configName, defaultPath)), ['--version'], true, { cwd: workspace.rootPath });
@@ -659,12 +659,14 @@ export class Extension {
 				if (this.settings.aggressiveUpdate && !forced) {
 					return installFunc(process.env);
 				} else {
-					var isDirectory = false;
+					let isDirectory = false;
 
 					try {
 						const testPath = this.settings.get(configName, '');
 						isDirectory = isAbsolute(testPath) && (await stat(testPath)).isDirectory();
-					} catch (e) { }
+					} catch (e) {
+						// nothing
+					}
 
 					if (isDirectory) {
 						return window.showErrorMessage(`${name} from setting ${fullConfigName} points to a directory`, reinstallBtn, userSettingsBtn).then(defaultHandler);
@@ -759,7 +761,7 @@ export class Extension {
 
 			const regex = /serve-d v(\d+\.\d+\.\d+(?:-[-.a-zA-Z0-9]+)?)/;
 
-			var target = current.name;
+			let target = current.name;
 			if (target.startsWith('v')) {
 				target = target.substring(1);
 			}
@@ -803,7 +805,7 @@ export class Extension {
 	async waitForOtherInstanceInstall(depName: string, forced: boolean, showProgress: boolean = true): Promise<boolean> {
 		// XXX: horrible polling code here because there is no other IPC API for vscode extensions
 		const installInProgress = `installInProgress-${depName}`;
-		var lock = this.#context.globalState.get(installInProgress, undefined);
+		const lock = this.#context.globalState.get(installInProgress, undefined);
 
 		if (this.lockIsStillAcquired(lock)) {
 			if (forced) {

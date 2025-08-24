@@ -11,20 +11,15 @@ const ncp = promisify(ncpSync);
 
 export async function getTemplates(): Promise<Template[]> {
 	const data = await readFile(join(extension.path, 'templates', 'info.json'));
-	var templates: any[] = JSON.parse(data.toString());
-	var result: Template[] = [];
+	const templates: any[] = JSON.parse(data.toString());
 
-	templates.forEach((template: any) => {
-		result.push({
-			label: template.name,
-			description: '',
-			detail: template.detail,
-			id: template.path,
-			json: template.dub
-		});
-	});
-
-	return result;
+	return templates.map(template => ({
+		label: template.name,
+		description: '',
+		detail: template.detail,
+		id: template.path,
+		json: template.dub,
+	}));
 }
 
 export async function showProjectCreator(): Promise<void> {

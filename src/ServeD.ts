@@ -43,24 +43,33 @@ export default class ServeD extends NodeEventEmitter implements TreeDataProvider
 
 	getChildren(element?: DubDependency): Thenable<DubDependency[]> {
 		return new Promise(resolve => {
-			var req = (element && element.info) ? element.info.name : '';
-			var items: DubDependency[] = [];
+			const req = (element && element.info) ? element.info.name : '';
+			const items: DubDependency[] = [];
 
 			if (element && element.info) {
-				if (element.info.description)
+				if (element.info.description) {
 					items.push(new DubDependency(element.info.description, undefined, 'description'));
-				if (element.info.homepage)
+				}
+
+				if (element.info.homepage) {
 					items.push(new DubDependency(element.info.homepage, {
 						command: 'open',
 						title: 'Open',
 						arguments: [Uri.parse(element.info.homepage)]
 					}, 'web'));
-				if (element.info.authors && element.info.authors.join('').trim())
+				}
+
+				if (element.info.authors && element.info.authors.join('').trim()) {
 					items.push(new DubDependency(`Authors: ${element.info.authors.join()}`, undefined, 'authors'));
-				if (element.info.license)
+				}
+
+				if (element.info.license) {
 					items.push(new DubDependency(`License: ${element.info.license}`, undefined, 'license'));
-				if (element.info.copyright)
+				}
+
+				if (element.info.copyright) {
 					items.push(new DubDependency(element.info.copyright));
+				}
 			}
 
 			if (!element || req) {

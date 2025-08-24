@@ -27,8 +27,8 @@ export function addJSONProviders(): Disposable {
 	];
 
 	for (const contribution of contributions) {
-		var provider = new JSONProvider(contribution);
-		let selector = contribution.getDocumentSelector();
+		const provider = new JSONProvider(contribution);
+		const selector = contribution.getDocumentSelector();
 		subs.push(languages.registerCompletionItemProvider(selector, provider, '"', ':', '/', '\\'));
 		subs.push(languages.registerHoverProvider(selector, provider));
 	}
@@ -126,11 +126,13 @@ export class JSONProvider implements HoverProvider, CompletionItemProvider {
 	}
 
 	private getCurrentWord(document: TextDocument, position: Position) {
-		var i = position.character - 1;
-		var text = document.lineAt(position.line).text;
+		let i = position.character - 1;
+		const text = document.lineAt(position.line).text;
+
 		while (i >= 0 && ' \t\n\r\v"{[,'.indexOf(text.charAt(i)) === -1) {
 			i--;
 		}
+
 		return text.substring(i + 1, position.character);
 	}
 }

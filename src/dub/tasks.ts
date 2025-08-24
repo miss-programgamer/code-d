@@ -14,7 +14,7 @@ export class DubTaskProvider implements TaskProvider {
 		const ret: Task[] = [];
 
 		for (const taskConfig of taskConfigs) {
-			var target: WorkspaceFolder | TaskScope | undefined;
+			let target: WorkspaceFolder | TaskScope | undefined;
 			let cwd: string = '';
 
 			if (taskConfig.scope === 'global') {
@@ -31,8 +31,8 @@ export class DubTaskProvider implements TaskProvider {
 				continue;
 			}
 
-			var proc: string = taskConfig.exec.shift() ?? 'exit';
-			var args: string[] = taskConfig.exec;
+			const proc: string = taskConfig.exec.shift() ?? 'exit';
+			const args: string[] = taskConfig.exec;
 
 			if (taskConfig.definition.cwd) {
 				cwd = taskConfig.definition.cwd;
@@ -52,7 +52,7 @@ export class DubTaskProvider implements TaskProvider {
 				taskConfig.problemMatchers = ['$dmd'];
 			}
 
-			var task = new Task(taskConfig.definition, target, taskConfig.name, taskConfig.source, makeExecutor(proc, args, cwd), taskConfig.problemMatchers);
+			const task = new Task(taskConfig.definition, target, taskConfig.name, taskConfig.source, makeExecutor(proc, args, cwd), taskConfig.problemMatchers);
 			task.isBackground = taskConfig.isBackground;
 			task.presentationOptions = {
 				focus: Boolean(taskConfig.definition.run)

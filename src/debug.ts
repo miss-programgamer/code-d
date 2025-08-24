@@ -10,6 +10,8 @@ import type ServeD from './ServeD.js';
 import extension from './extension.js';
 
 
+let debugProvider: DDebugProvider;
+
 export function registerDebuggers() {
 	const webfreakDebug = extensions.getExtension('webfreak.debug');
 	const cppDebug = extensions.getExtension('ms-vscode.cpptools');
@@ -19,7 +21,6 @@ export function registerDebuggers() {
 	extension.subs.push(debug.registerDebugConfigurationProvider('code-d', debugProvider));
 }
 
-var debugProvider: DDebugProvider;
 export function linkDebuggersWithServed(served: ServeD) {
 	debugProvider.served = served;
 }
@@ -327,12 +328,12 @@ class DDebugProvider implements DebugConfigurationProvider {
 			return config;
 		}
 
-		var dubconfig = await this.served?.getActiveDubConfig();
+		const dubconfig = await this.served?.getActiveDubConfig();
 
-		var hasCDebugInfo = (dubconfig?.buildOptions?.indexOf('debugInfoC') ?? -1) !== -1
+		const hasCDebugInfo = (dubconfig?.buildOptions?.indexOf('debugInfoC') ?? -1) !== -1
 			|| (dubconfig?.dflags?.indexOf('-gc') ?? -1) !== -1;
 
-		var isSDL = dubconfig?.recipePath?.endsWith('.sdl') ?? false;
+		const isSDL = dubconfig?.recipePath?.endsWith('.sdl') ?? false;
 
 		console.log(dubconfig);
 

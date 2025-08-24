@@ -20,7 +20,7 @@ export default class DTerminalLinkProvider implements TerminalLinkProvider {
 	}
 
 	handleTerminalLink(link: TerminalFileLink) {
-		var range: null | number | Position = null;
+		let range: null | number | Position = null;
 
 		if (link.file.line != null && link.file.column != null) {
 			range = new Position(link.file.line - 1, link.file.column - 1);

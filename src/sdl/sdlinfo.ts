@@ -17,16 +17,17 @@ export interface SDLCompletionInfo {
 }
 
 export function getLocationInfo(document: TextDocument, position: Position): SDLCompletionInfo {
-	var root = parseSDL(document.getText());
-	var pos = document.offsetAt(position);
-	var current: Tag[] = [root];
-	var currentNamespace = [''];
-	var currentName = [''];
+	const root = parseSDL(document.getText());
+	const pos = document.offsetAt(position);
+	const current: Tag[] = [root];
+	const currentNamespace = [''];
+	const currentName = [''];
 
 	(function findContext() {
-		var prevCur = current.length;
+		const prevCur = current.length;
+
 		Object.keys(current[current.length - 1].tags).forEach(key => {
-			if (current[current.length - 1].tags[key])
+			if (current[current.length - 1].tags[key]) {
 				current[current.length - 1].tags[key].forEach(tag => {
 					if (tag.range) {
 						if (pos >= tag.range[0] && pos < tag.range[1]) {
@@ -38,11 +39,13 @@ export function getLocationInfo(document: TextDocument, position: Position): SDL
 						}
 					}
 				});
+			}
 		});
+
 		Object.keys(current[current.length - 1].namespaces).forEach(key => {
-			if (current[current.length - 1].namespaces[key])
+			if (current[current.length - 1].namespaces[key]) {
 				Object.keys(current[current.length - 1].namespaces[key].tags).forEach(tagkey => {
-					if (current[current.length - 1].namespaces[key].tags[tagkey])
+					if (current[current.length - 1].namespaces[key].tags[tagkey]) {
 						current[current.length - 1].namespaces[key].tags[tagkey].forEach(tag => {
 							if (tag.range) {
 								if (pos >= tag.range[0] && pos < tag.range[1]) {
@@ -54,19 +57,22 @@ export function getLocationInfo(document: TextDocument, position: Position): SDL
 								}
 							}
 						});
+					}
 				});
+			}
 		});
+
 		if (prevCur !== current.length) {
 			findContext();
 		}
 	})();
 
-	var locationType: SDLLocationType = 'block';
-	var namespaceStack = currentNamespace;
-	var nameStack = currentName;
-	var valueContent: Value | undefined = undefined;
-	var valueIndex = -1;
-	var partialContent = '';
+	let locationType: SDLLocationType = 'block';
+	let namespaceStack = currentNamespace;
+	let nameStack = currentName;
+	let valueContent: Value | undefined = undefined;
+	let valueIndex = -1;
+	let partialContent = '';
 
 	function findInValues(values: Value[], attribName?: string) {
 		values.forEach((value, i) => {
@@ -101,7 +107,7 @@ export function getLocationInfo(document: TextDocument, position: Position): SDL
 		});
 	}
 
-	var curr = current[current.length - 1];
+	const curr = current[current.length - 1];
 	findInValues(curr.values);
 	Object.keys(curr.attributes).forEach(key => {
 		findInValues(curr.attributes[key], key);

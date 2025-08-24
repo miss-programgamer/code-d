@@ -25,37 +25,37 @@ export interface Tag {
 	errors?: TagParseError[];
 }
 
-var unicodeChar = /^'(.*?)'/;
-var dateTime = /^(\d{4})\/(\d{2})\/(\d{2})\s(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?(?:-([a-zA-Z0-9_]\/[a-zA-Z0-9_]|[A-Z]{3}|GMT[+-]\d{2}(?::\d{2})?))?/;
-var timespan = /^([+-])?(?:(\d+)d)?(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?/;
-var date = /^(\d{4})\/(\d{2})\/(\d{2})/;
-var longInteger = /^([+-]?\d+)[Ll]/;
-var double = /^([+-]?\d+\.\d+)[Dd]?/;
-var float = /^([+-]?\d+\.\d+)[Ff]/;
-var decimal = /^([+-]?\d+\.\d+)(?:BD|bd)/;
-var integer = /^([+-]?\d+)/;
-var boolean = /^(true|false|on|off)/;
-var binaryValue = /^\[([a-zA-Z0-9\+\/=\s]+)\]/;
-var nullValue = /^(null)/;
-var identifier = /^([A-Za-z_\.\$][A-Za-z0-9_\-\.\$]*)/;
-var wysiwygString = /^`([\S\s]*?)`/;
-var stringWhitespaceChar = /[^\S\n]/;
+const unicodeChar = /^'(.*?)'/;
+const dateTime = /^(\d{4})\/(\d{2})\/(\d{2})\s(\d{2}):(\d{2})(?::(\d{2}))?(?:\.(\d+))?(?:-([a-zA-Z0-9_]\/[a-zA-Z0-9_]|[A-Z]{3}|GMT[+-]\d{2}(?::\d{2})?))?/;
+const timespan = /^([+-])?(?:(\d+)d)?(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?/;
+const date = /^(\d{4})\/(\d{2})\/(\d{2})/;
+const longInteger = /^([+-]?\d+)[Ll]/;
+const double = /^([+-]?\d+\.\d+)[Dd]?/;
+const float = /^([+-]?\d+\.\d+)[Ff]/;
+const decimal = /^([+-]?\d+\.\d+)(?:BD|bd)/;
+const integer = /^([+-]?\d+)/;
+const boolean = /^(true|false|on|off)/;
+const binaryValue = /^\[([a-zA-Z0-9\+\/=\s]+)\]/;
+const nullValue = /^(null)/;
+const identifier = /^([A-Za-z_\.\$][A-Za-z0-9_\-\.\$]*)/;
+const wysiwygString = /^`([\S\s]*?)`/;
+const stringWhitespaceChar = /[^\S\n]/;
 
 function parseStringLiteral(sdl: string) {
 	if (sdl.length < 2) {
 		return null;
 	} else if (sdl[0] === '`') {
-		var match = wysiwygString.exec(sdl);
+		const match = wysiwygString.exec(sdl);
 		if (match) {
 			return { string: match[1], length: match[0].length };
 		} else {
 			return { string: sdl.substring(1), length: sdl.length };
 		}
 	} else if (sdl[0] === '"') {
-		var str = '';
-		var skipWhitespace = false;
-		var escape = false;
-		for (var i = 1; i < sdl.length; i++) {
+		let str = '';
+		let skipWhitespace = false;
+		let escape = false;
+		for (let i = 1; i < sdl.length; i++) {
 			if (escape) {
 				skipWhitespace = false;
 				if (sdl[i] === '"') {
@@ -95,33 +95,34 @@ function parseStringLiteral(sdl: string) {
 	}
 }
 
-var lineComment = /^(?:#|\/\/|--).*?(?=\n|$)/;
-var blockComment = /^\/\*[\s\S]*?\*\//;
-var whitespace = /^[^\S\n]+/;
-var escapedNewline = /^\\\n/;
-var endtoken = /^(\n+|;)/;
-var blockStart = /^{/;
-var blockEnd = /^}/;
+const lineComment = /^(?:#|\/\/|--).*?(?=\n|$)/;
+const blockComment = /^\/\*[\s\S]*?\*\//;
+const whitespace = /^[^\S\n]+/;
+const escapedNewline = /^\\\n/;
+const endtoken = /^(\n+|;)/;
+const blockStart = /^{/;
+const blockEnd = /^}/;
 
 export function tokenizeSDL(sdl: string) {
 	sdl += '\n';
 
-	var original = sdl;
-	var tokens = [];
-	var isAttribute = false;
-	var attributeName;
-	var attributeRange;
-	var index = 0;
+	const original = sdl;
+
+	let tokens = [];
+	let isAttribute = false;
+	let attributeName;
+	let attributeRange;
+	let index = 0;
 
 	while (sdl.length) {
-		var startLen = sdl.length;
+		const startLen = sdl.length;
 		index = original.length - sdl.length;
 
 		if (sdl.substring(0, 64) !== original.substring(index, 64)) {
 			throw `Faulty index.\nRemaining: '${sdl.substring(0, 64)}'\nAccording to index: '${original.substring(index, 64)}'`;
 		}
 
-		var match;
+		let match;
 		if (match = unicodeChar.exec(sdl)) {
 			tokens.push({ type: 'value', range: [index, index + match[0].length], valuetype: 'char', value: match[1] });
 			sdl = sdl.substring(match[0].length);
@@ -212,7 +213,7 @@ export function tokenizeSDL(sdl: string) {
 			if (tokens[tokens.length - 1].type === 'value') {
 				tokens[tokens.length - 1] = { type: 'attribute', range: attributeRange, name: attributeName, value: tokens[tokens.length - 1] };
 			} else {
-				var lastTok: any = tokens[tokens.length - 1];
+				const lastTok: any = tokens[tokens.length - 1];
 				tokens.pop();
 				tokens.push({ type: 'attribute', range: [attributeRange[0], attributeRange[1] + 1], name: attributeName, value: undefined });
 				tokens.push(lastTok);
@@ -233,8 +234,8 @@ export function tokenizeSDL(sdl: string) {
 }
 
 export function parseSDL(sdl: string): Tag {
-	var tokens = tokenizeSDL(sdl);
-	var root: Tag = {
+	const tokens = tokenizeSDL(sdl);
+	const root: Tag = {
 		attributes: {},
 		namespaces: {},
 		tags: {},
@@ -243,14 +244,15 @@ export function parseSDL(sdl: string): Tag {
 		errors: [],
 		range: undefined
 	};
-	var currTag: Tag | null = root;
-	var currNamespace = '';
-	var anon = true;
-	var lastWasEnd = true;
-	var inIdentifier = false;
 
-	for (var i = 0; i < tokens.length; i++) {
-		var token = tokens[i];
+	let currTag: Tag | null = root;
+	let currNamespace = '';
+	let anon = true;
+	let lastWasEnd = true;
+	let inIdentifier = false;
+
+	for (let i = 0; i < tokens.length; i++) {
+		const token = tokens[i];
 
 		if (token.type !== 'end') {
 			lastWasEnd = false;
@@ -325,7 +327,7 @@ export function parseSDL(sdl: string): Tag {
 					currTag.tags[token.name] = [];
 				}
 
-				var tag: Tag = {
+				const tag: Tag = {
 					attributes: {},
 					namespaces: {},
 					tags: {},

@@ -44,10 +44,10 @@ function completeDubVersion(info: SDLCompletionInfo): SDLCompletionResult {
 		return []; // no autocompletion of version when repository is set
 	}
 
-	var packageName = info.currentSDLObject.values[0].value;
+	const packageName = info.currentSDLObject.values[0].value;
 	return new Promise((resolve) => {
 		getPackageInfo(packageName).then(json => {
-			var versions = json.versions;
+			const versions = json.versions;
 
 			if (!versions || !versions.length) {
 				return resolve([]);
@@ -732,17 +732,21 @@ const buildSettings: CompletionTagMap = {
 };
 
 function merge(a: OptionalCompletionTagMap, b: OptionalCompletionTagMap): CompletionTagMap {
-	var obj: any = {};
+	const obj: any = {};
 	Object.keys(a).forEach(k => obj[k] = a[k]);
 	Object.keys(b).forEach(k => obj[k] = b[k]);
 	return obj;
 }
 
 function map(obj: CompletionTagMap, fn: (t: CompletionTag) => CompletionTag): CompletionTagMap {
-	var d: CompletionTagMap = {};
-	for (const k in obj)
-		if (obj.hasOwnProperty(k))
+	const d: CompletionTagMap = {};
+
+	for (const k in obj) {
+		if (obj.hasOwnProperty(k)) {
 			d[k] = fn(obj[k]);
+		}
+	}
+
 	return d;
 }
 
@@ -846,7 +850,7 @@ let dubSchema = {
 						}
 					},
 					complete(info) {
-						var words = info.partial.trim().split(' ');
+						const words = info.partial.trim().split(' ');
 
 						if (words.length === 0) {
 							return licenses;
@@ -923,7 +927,7 @@ export class SDLContributions implements CompletionItemProvider {
 	async provideCompletionItems(document: TextDocument, position: Position, token: CancellationToken): Promise<CompletionItem[]> {
 		console.log('Completion:');
 		try {
-			var info = getLocationInfo(document, position);
+			const info = getLocationInfo(document, position);
 			console.log(info);
 
 			if (info.namespace[0] !== '') {
@@ -938,8 +942,8 @@ export class SDLContributions implements CompletionItemProvider {
 
 			let obj: CompletionTag = dubSchema;
 			let len = info.name.length - 1;
-			var found = true;
-			for (var i = 1; i < len; i++) {
+			let found = true;
+			for (let i = 1; i < len; i++) {
 				found = false;
 				let name = info.name[i];
 				let namespace = info.namespace[i];
@@ -1018,7 +1022,7 @@ export class SDLContributions implements CompletionItemProvider {
 						let item = new CompletionItem(attribute);
 						item.documentation = new MarkdownString(obj.attributes![attribute].description);
 						item.kind = CompletionItemKind.Variable;
-						var insertText = new SnippetString().appendText(`${attribute}=`);
+						const insertText = new SnippetString().appendText(`${attribute}=`);
 						if (obj.attributes![attribute].values) {
 							item.detail = obj.attributes![attribute].values.type;
 							if (item.detail === 'string') {
@@ -1064,7 +1068,8 @@ export class SDLContributions implements CompletionItemProvider {
 	}
 
 	provideDiagnostics(document: TextDocument): Diagnostic[] {
-		var root = parseSDL(document.getText());
+		const root = parseSDL(document.getText());
+
 		let errors: Diagnostic[] = [];
 
 		function range(r: [number, number]) {
@@ -1088,7 +1093,7 @@ export class SDLContributions implements CompletionItemProvider {
 
 			if (obj.pattern) {
 				if (typeof (<any>obj.pattern).validate === 'function') {
-					var msg = (<any>obj.pattern).validate(value);
+					const msg = (<any>obj.pattern).validate(value);
 					if (msg) {
 						errors.push(new Diagnostic(range(value.range), msg, DiagnosticSeverity.Error));
 					}
@@ -1106,7 +1111,7 @@ export class SDLContributions implements CompletionItemProvider {
 
 		function scanTag(tag: Tag, obj: CompletionTag, nsName = '') {
 			if (obj.tags) {
-				var hasTags = false;
+				let hasTags = false;
 
 				Object.keys(tag.tags).forEach(tagName => {
 					hasTags = true;
